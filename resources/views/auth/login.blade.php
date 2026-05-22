@@ -10,7 +10,7 @@
                 </h1>
                 <p class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Portal Authentication</p>
             </div>
-Z
+
             <x-auth-session-status class="mb-4 text-[#ff2d75] text-[10px] font-bold text-center uppercase tracking-widest" :status="session('status')" />
 
             <form method="POST" action="{{ route('login') }}">
