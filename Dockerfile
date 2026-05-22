@@ -1,17 +1,24 @@
-# Install system packages and PHP extensions
+Dockerfile
+# 1. Start with a base image (Use PHP 8.2 or 8.3 Apache for Laravel)
+FROM php:8.2-apache
+
+# 2. Set the working directory
+WORKDIR /var/www/html
+
+# 3. Now perform your system updates and installs (the lines you had)
 RUN apt-get update && apt-get install -y \
-git \
-unzip \
-curl \
-libpq-dev \
-libzip-dev \
-libonig-dev \
-libxml2-dev \
-libpng-dev \
-zip \
-&& docker-php-ext-install pdo pdo_mysql pdo_pgsql zip mbstring xml \
-&& apt-get clean \
-&& rm -rf /var/lib/apt/lists/*
+    git \
+    unzip \
+    curl \
+    libpq-dev \
+    libzip-dev \
+    libonig-dev \
+    libxml2-dev \
+    libpng-dev \
+    zip \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql zip mbstring xml \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 # Enable Apache rewrite
 RUN a2enmod rewrite
 # Make Apache use port 10000 (Render default)
