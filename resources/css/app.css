@@ -1,35 +1,5 @@
+@import './custom-theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@layer base {
-    /* Force all inputs to have white text and a dark background across the app */
-    input, 
-    select, 
-    textarea, 
-    option {
-        @apply text-white bg-[#222];
-        color: white !important;
-    }
-
-    /* Fix the flashing/invisible text during Autofill */
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover, 
-    input:-webkit-autofill:focus,
-    input:-webkit-autofill:active {
-        -webkit-text-fill-color: white !important;
-        -webkit-box-shadow: 0 0 0px 1000px #222 inset !important;
-        transition: background-color 5000s ease-in-out 0s;
-    }
-
-    /* Ensure the typing cursor (caret) is visible against dark backgrounds */
-    input {
-        caret-color: #ff2d75 !important;
-    }
-    
-    /* Ensure dropdown menus (select) stay dark when clicked */
-    select option {
-        background-color: #1a1a1a !important;
-        color: white !important;
-    }
-}

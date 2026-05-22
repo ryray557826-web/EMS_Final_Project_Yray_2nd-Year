@@ -1,63 +1,53 @@
 <x-app-layout>
-    <style>
-        /* CRITICAL: Fixes invisible text during browser autofill */
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus {
-            -webkit-text-fill-color: white !important;
-            -webkit-box-shadow: 0 0 0px 1000px #222 inset !important;
-            transition: background-color 5000s ease-in-out 0s;
-        }
-        select option { background: #1a1a1a; color: white; }
-    </style>
-
-    <div class="py-12 bg-[#121212] min-h-screen flex items-center justify-center">
-        <div class="w-full max-w-2xl bg-[#1a1a1a] border border-[#333] p-8 rounded-3xl shadow-xl">
-            <div class="text-center mb-8">
-                <h2 class="text-xl font-bold text-white uppercase tracking-widest">Register <span class="text-[#ff2d75]">Staff</span></h2>
-                <p class="text-gray-500 text-[10px] mt-1">Assign new personnel to the system</p>
+    <div class="py-12 bg-[#0a0a0a] min-h-screen flex items-center justify-center">
+        <div class="w-full max-w-2xl bg-[#161616] border border-[#262626] p-10 rounded-3xl shadow-2xl text-white">
+            <div class="text-center mb-10">
+                <h2 class="text-xl font-black uppercase tracking-widest">Update <span class="text-[#ff2d75]">Personnel</span></h2>
+                <p class="text-gray-500 text-[10px] mt-1 tracking-widest uppercase">Modifying profile matrix fields</p>
             </div>
 
-            <form action="{{ route('employees.store') }}" method="POST">
-                @csrf
+            <form action="{{ route('employees.update', $employee->employee_id) }}" method="POST">
+                @csrf @method('PUT')
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2">
-                        <label class="text-gray-400 text-[10px] font-bold tracking-widest uppercase">Full Name</label>
-                        <input type="text" name="name" class="w-full bg-[#222] border-[#333] text-white rounded-lg mt-1 focus:border-[#ff2d75] focus:ring-[#ff2d75]" required>
+                        <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Full Name</label>
+                        <input type="text" name="full_name" value="{{ old('full_name', $employee->full_name) }}" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
                     </div>
-
                     <div>
-                        <label class="text-gray-400 text-[10px] font-bold tracking-widest uppercase">System Email</label>
-                        <input type="email" name="email" class="w-full bg-[#222] border-[#333] text-white rounded-lg mt-1 focus:border-[#ff2d75] focus:ring-[#ff2d75]" required>
+                        <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">System Email</label>
+                        <input type="email" name="email" value="{{ old('email', $employee->user->email ?? '') }}" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
                     </div>
-
                     <div>
-                        <label class="text-gray-400 text-[10px] font-bold tracking-widest uppercase">Position</label>
-                        <select name="position_id" class="w-full bg-[#222] border-[#333] text-white rounded-lg mt-1 focus:border-[#ff2d75] focus:ring-[#ff2d75]">
-                            @foreach($positions as $position)
-                                <option value="{{ $position->position_id }}">{{ $position->position_title }}</option>
+                        <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Position Mapping</label>
+                        <select name="position_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
+                            @foreach($positions as $p)
+                                <option value="{{ $p->position_id }}" {{ $employee->position_id == $p->position_id ? 'selected' : '' }}>{{ $p->position_name }}</option>
                             @endforeach
                         </select>
                     </div>
-
                     <div>
-                        <label class="text-gray-400 text-[10px] font-bold tracking-widest uppercase">Branch</label>
-                        <select name="branch_id" class="w-full bg-[#222] border-[#333] text-white rounded-lg mt-1 focus:border-[#ff2d75] focus:ring-[#ff2d75]">
-                            @foreach($branches as $branch)
-                                <option value="{{ $branch->branch_id }}">{{ $branch->branch_name }}</option>
+                        <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Branch Node</label>
+                        <select name="branch_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
+                            @foreach($branches as $b)
+                                <option value="{{ $b->branch_id }}" {{ $employee->branch_id == $b->branch_id ? 'selected' : '' }}>{{ $b->branch_name }}</option>
                             @endforeach
                         </select>
                     </div>
-
+                    <div>
+                        <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Authorization</label>
+                        <select name="role_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
+                            <option value="3" {{ ($employee->user->role_id ?? 3) == 3 ? 'selected' : '' }}>Employee</option>
+                            <option value="2" {{ ($employee->user->role_id ?? 3) == 2 ? 'selected' : '' }}>Branch Admin</option>
+                        </select>
+                    </div>
                     <div class="md:col-span-2">
-                        <label class="text-gray-400 text-[10px] font-bold tracking-widest uppercase">Initial Password</label>
-                        <input type="password" name="password" value="Splace2026!" class="w-full bg-[#222] border-[#333] text-white rounded-lg mt-1 focus:border-[#ff2d75] focus:ring-[#ff2d75]">
+                        <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Update Password (Blank to keep current)</label>
+                        <input type="password" name="password" placeholder="••••••••" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition">
                     </div>
                 </div>
-
-                <div class="mt-8 flex gap-4">
-                    <button type="submit" class="flex-1 bg-[#ff2d75] text-white font-bold py-3 rounded-xl hover:bg-[#e62668] transition">CREATE RECORD</button>
-                    <a href="{{ route('employees.index') }}" class="flex-1 bg-[#222] border border-[#333] text-gray-400 font-bold py-3 rounded-xl text-center hover:text-white transition uppercase text-xs flex items-center justify-center">Cancel</a>
+                <div class="mt-10 flex gap-4">
+                    <button type="submit" class="flex-1 bg-[#ff2d75] hover:bg-[#e62668] text-white font-black py-4 rounded-xl transition tracking-widest text-[11px] uppercase">Save Updates</button>
+                    <a href="{{ route('employees.index') }}" class="flex-1 bg-[#262626] hover:bg-[#363636] text-white font-black py-4 rounded-xl text-center transition tracking-widest text-[11px] uppercase">Cancel</a>
                 </div>
             </form>
         </div>

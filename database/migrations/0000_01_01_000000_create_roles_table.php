@@ -13,10 +13,10 @@ return new class extends Migration
 public function up(): void
 {
     Schema::create('roles', function (Blueprint $table) {
-        $table->id('role_id');
-        $table->string('role_name'); // Super Admin, Admin, User
-        $table->timestamps();
-    });
+    $table->id(); // This must be the source of truth for the foreign key
+    $table->string('name');
+    $table->timestamps();
+});
 }
 
     /**

@@ -1,6 +1,3 @@
-import defaultTheme from 'tailwindcss/defaultTheme';
-import forms from '@tailwindcss/forms';
-
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -8,14 +5,16 @@ export default {
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
     ],
-
     theme: {
         extend: {
-            fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
-            },
+            colors: {
+                brand: {
+                    DEFAULT: '#0a0a0a', // Background
+                    card: '#161616',    // Card
+                    pink: '#ff2d75',    // Accents
+                }
+            }
         },
     },
-
-    plugins: [forms],
+    plugins: [require('@tailwindcss/forms')],
 };

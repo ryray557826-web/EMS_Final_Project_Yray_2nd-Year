@@ -45,8 +45,23 @@ class BranchController extends Controller
     }
 
     // 4. Show the edit form
-    public function edit(Branch $branch)
-    {
-        return view('branches.create', compact('branch')); // Reusing the same view
-    }
+    public function edit($id)
+{
+    $branch = \App\Models\Branch::findOrFail($id);
+    return view('branches.edit', compact('branch'));
+}
+
+public function update(Request $request, $id)
+{
+    $branch = \App\Models\Branch::findOrFail($id);
+    $request->validate([
+        'branch_name' => 'required|string|max:255',
+        'location' => 'required|string|max:255',
+        'branch_contact' => 'nullable|string|max:255',
+    ]);
+
+    $branch->update($request->all());
+
+    return redirect()->route('branches.index')->with('success', 'Branch updated successfully.');
+}
 }

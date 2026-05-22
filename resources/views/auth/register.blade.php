@@ -1,73 +1,61 @@
 <x-guest-layout>
-    <style>
-        /* Ensuring the container stays dark to match the welcome page */
-        .min-h-screen { background-color: #121212 !important; }
-        .bg-white { background-color: #1a1a1a !important; border: 1px solid #333; }
-    </style>
-
-    <div class="mb-8 text-center">
-        <div class="inline-flex items-center justify-center w-12 h-12 bg-[#ff2d75] rounded-lg mb-4 shadow-[0_0_15px_rgba(255,45,117,0.4)] text-white font-bold text-xl">
-            S
-        </div>
-        <h1 class="text-2xl font-bold text-white">Join <span class="text-[#ff2d75]">SplaceConnectED</span></h1>
-        <p class="text-xs text-gray-400 mt-2 uppercase tracking-widest">Create Employee Account</p>
-    </div>
-
-    <form method="POST" action="{{ route('register') }}">
-        @csrf
-
-        <div>
-            <x-input-label for="name" :value="__('FULL NAME')" class="text-gray-400 text-[10px] font-bold tracking-widest" />
-            <x-text-input id="name" 
-                class="block mt-1 w-full bg-[#222] border-[#333] text-white focus:border-[#ff2d75] focus:ring-[#ff2d75] rounded-lg" 
-                type="text" 
-                name="name" 
-                :value="old('name')" 
-                required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
-        </div>
-
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('SYSTEM EMAIL')" class="text-gray-400 text-[10px] font-bold tracking-widest" />
-            <x-text-input id="email" 
-                class="block mt-1 w-full bg-[#222] border-[#333] text-white focus:border-[#ff2d75] focus:ring-[#ff2d75] rounded-lg" 
-                type="email" 
-                name="email" 
-                :value="old('email')" 
-                required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('PASSWORD')" class="text-gray-400 text-[10px] font-bold tracking-widest" />
-            <x-text-input id="password" 
-                class="block mt-1 w-full bg-[#222] border-[#333] text-white focus:border-[#ff2d75] focus:ring-[#ff2d75] rounded-lg"
-                type="password"
-                name="password"
-                required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('CONFIRM PASSWORD')" class="text-gray-400 text-[10px] font-bold tracking-widest" />
-            <x-text-input id="password_confirmation" 
-                class="block mt-1 w-full bg-[#222] border-[#333] text-white focus:border-[#ff2d75] focus:ring-[#ff2d75] rounded-lg"
-                type="password"
-                name="password_confirmation" 
-                required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex flex-col space-y-4 mt-8">
-            <x-primary-button class="w-full justify-center py-3 bg-[#ff2d75] hover:bg-[#e62668] active:bg-[#ff2d75] focus:ring-[#ff2d75] text-white font-bold rounded-lg border-none">
-                {{ __('AUTHORIZE ACCOUNT') }}
-            </x-primary-button>
-
-            <div class="text-center">
-                <a class="text-xs text-gray-500 hover:text-[#ff2d75] transition-colors" href="{{ route('login') }}">
-                    {{ __('Already have an account? Sign In') }}
-                </a>
+    <div class="max-w-md w-full px-6">
+        <div class="bg-[#161616] p-10 rounded-3xl shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-[#121212] rounded-2xl mb-6 shadow-inner">
+                    <span class="text-[#ff2d75] font-black text-2xl">S</span>
+                </div>
+                <h1 class="text-xl font-black text-white uppercase tracking-tighter">
+                    SPLACE<span class="text-[#ff2d75]">CONNECTED</span>
+                </h1>
+                <p class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Create Employee Account</p>
             </div>
+
+            <form method="POST" action="{{ route('register') }}">
+                @csrf
+                <div class="space-y-6">
+                    <div>
+                        <label for="name" class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Full Name</label>
+                        <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus autocomplete="name"
+                            class="w-full bg-[#121212] border-none text-white rounded-xl focus:ring-2 focus:ring-[#ff2d75] transition-all placeholder:text-[#333]"
+                            placeholder="Juan Dela Cruz">
+                        <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                    </div>
+
+                    <div>
+                        <label for="email" class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">System Email</label>
+                        <input id="email" type="email" name="email" value="{{ old('email') }}" required autocomplete="username"
+                            class="w-full bg-[#121212] border-none text-white rounded-xl focus:ring-2 focus:ring-[#ff2d75] transition-all placeholder:text-[#333]"
+                            placeholder="username@splacebpo.com">
+                        <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Password</label>
+                        <input id="password" type="password" name="password" required autocomplete="new-password"
+                            class="w-full bg-[#121212] border-none text-white rounded-xl focus:ring-2 focus:ring-[#ff2d75] transition-all placeholder:text-[#333]"
+                            placeholder="••••••••">
+                        <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                    </div>
+
+                    <div>
+                        <label for="password_confirmation" class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Confirm Password</label>
+                        <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password"
+                            class="w-full bg-[#121212] border-none text-white rounded-xl focus:ring-2 focus:ring-[#ff2d75] transition-all placeholder:text-[#333]"
+                            placeholder="••••••••">
+                        <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+                    </div>
+
+                    <div class="flex flex-col gap-4 pt-2">
+                        <button type="submit" class="w-full bg-[#ff2d75] hover:bg-[#e62668] text-white font-bold py-4 rounded-xl transition duration-300 uppercase tracking-widest text-sm shadow-lg shadow-[#ff2d75]/10">
+                            {{ __('Authorize Account') }}
+                        </button>
+                        <a href="{{ route('login') }}" class="text-center text-[10px] text-gray-500 hover:text-white transition-colors uppercase font-bold tracking-widest">
+                            {{ __('Already have an account? Sign In') }}
+                        </a>
+                    </div>
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 </x-guest-layout>

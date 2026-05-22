@@ -9,15 +9,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+ public function up(): void
 {
-    Schema::create('positions', function (Blueprint $table) {
-        $table->id('position_id');
-        $table->string('position_title'); // e.g., Web Developer, Manager, Agent
-        $table->string('job_level');      // e.g., Entry, Junior, Senior
-        $table->decimal('basic_pay', 10, 2); // 10 digits total, 2 after decimal
-        $table->timestamps();
-    });
+Schema::create('positions', function (Blueprint $table) {
+    $table->id('position_id');
+    $table->string('position_title'); 
+    $table->string('job_level');      
+    $table->decimal('hourly_rate', 10, 2);
+    
+    // THIS IS THE FIX:
+    // It creates an unsignedBigInteger and sets up the constraint correctly
+    $table->foreignId('role_id')->default(3)->constrained('roles', 'id')->onDelete('cascade');
+    
+    $table->timestamps();    });
 }
 
     /**

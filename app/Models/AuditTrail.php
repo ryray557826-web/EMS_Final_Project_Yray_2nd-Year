@@ -9,9 +9,8 @@ class AuditTrail extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'audit_id'; // Ensure this matches your migration
+    protected $primaryKey = 'audit_id';
 
-    // Add these fields to the fillable array
     protected $fillable = [
         'user_id',
         'action',

@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('kpi_scorecards', function (Blueprint $table) {
     $table->id('kpi_id');
     $table->foreignId('employee_id')->constrained('employees', 'employee_id');
-    $table->decimal('quality_score', 5, 2); // Tracks the 85% requirement
-    $table->decimal('productivity_score', 5, 2);
+    $table->decimal('evaluation_score', 5, 2);
+    $table->text('remarks')->nullable(); // Add this line
     $table->timestamps();
 });
     }

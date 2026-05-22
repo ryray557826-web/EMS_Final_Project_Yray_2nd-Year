@@ -1,16 +1,8 @@
 <x-app-layout>
-    <style>
-        .emp-container { background: #1a1a1a; border: 1px solid #333; border-radius: 1rem; overflow: hidden; }
-        .emp-row:hover { background: rgba(255, 45, 117, 0.05); }
-        .action-link { font-size: 0.75rem; font-weight: bold; color: #888; transition: 0.3s; }
-        .action-link:hover { color: #ff2d75; }
-        .badge-branch { background: #222; border: 1px solid #444; color: #ff2d75; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; }
-    </style>
-
     <div class="py-12 bg-[#121212] min-h-screen text-white">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             
-            {{-- Alerts --}}
+            {{-- System Notifications --}}
             @if(session('success'))
                 <div class="mb-6 p-4 bg-green-500/10 border border-green-500 text-green-500 rounded-xl text-xs font-bold uppercase tracking-widest">
                     {{ session('success') }}
@@ -31,7 +23,7 @@
                 </a>
             </div>
 
-            <div class="emp-container">
+            <div class="emp-container overflow-hidden rounded-xl border border-[#333]">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-[#222] text-gray-400 uppercase text-[10px] tracking-widest">
                         <tr>
@@ -43,29 +35,30 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[#333]">
-                        {{-- Real Data Loop --}}
                         @forelse($employees as $employee)
-                            <tr class="emp-row transition">
+                            <tr class="hover:bg-[#1a1a1a] transition">
                                 <td class="py-4 px-6 font-mono text-[#ff2d75]">
                                     #{{ $employee->employee_id_number }}
                                 </td>
                                 <td class="py-4 px-6 font-bold">
                                     {{ $employee->full_name }}
                                 </td>
-                                <td class="py-4 px-6 text-gray-400">
-                                    {{ $employee->position->position_name ?? 'N/A' }}
+                                {{-- FIXED: Accessing 'position_title' from the Position model --}}
+                                <td class="px-6 py-4 text-sm text-gray-300">
+                                    {{ $employee->position->position_title ?? 'N/A' }}
                                 </td>
-                                <td class="py-4 px-6">
-                                    <span class="badge-branch">
-                                        {{ $employee->branch->branch_name ?? 'Unassigned' }}
-                                    </span>
+
+                                {{-- FIXED: Accessing 'branch_name' from the Branch model --}}
+                                <td class="px-6 py-4 text-sm text-gray-300">
+                                    {{ $employee->branch->branch_name ?? 'N/A' }}
                                 </td>
                                 <td class="py-4 px-6 text-right space-x-4">
-                                    <a href="{{ route('employees.edit', $employee->employee_id) }}" class="action-link">EDIT</a>
+                                    <a href="{{ route('employees.edit', $employee->employee_id) }}" class="text-[10px] font-bold text-gray-400 hover:text-white uppercase">Edit</a>
                                     
-                                    <form action="{{ route('employees.destroy', $employee->employee_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this personnel record?');">
-                                        @csrf @method('DELETE')
-                                        <button class="action-link text-red-900 hover:text-red-500">DELETE</button>
+                                    <form action="{{ route('employees.destroy', $employee->employee_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?');">
+                                        @csrf 
+                                        @method('DELETE')
+                                        <button type="submit" class="text-[10px] font-bold text-red-700 hover:text-red-500 uppercase">Delete</button>
                                     </form>
                                 </td>
                             </tr>
@@ -80,7 +73,6 @@
                 </table>
             </div>
 
-            {{-- Pagination (If applicable) --}}
             @if(method_exists($employees, 'links'))
                 <div class="mt-6">
                     {{ $employees->links() }}

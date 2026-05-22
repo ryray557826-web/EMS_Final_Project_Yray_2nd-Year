@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Position;
-use App\Models\AuditTrail; // CRITICAL: Added this import
+use App\Models\AuditTrail; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PositionController extends Controller
 {
@@ -14,12 +15,12 @@ class PositionController extends Controller
      */
     public function index()
     {
-        // Security: Only Super Admins (Role 1) should manage pay grades
-        if (Auth::user()->role_id !== 1) {
+        if (Auth::user()->role_id > 2) {
             abort(403, 'Unauthorized access to job structure configuration.');
         }
 
-        $positions = Position::all();
+        // MODIFIED: Added with('employees') to optimize performance for the assignment check
+        $positions = Position::with('employees')->get();
         return view('positions.index', compact('positions'));
     }
 
@@ -28,6 +29,10 @@ class PositionController extends Controller
      */
     public function create()
     {
+        if (Auth::user()->role_id > 2) {
+            abort(403, 'Unauthorized action.');
+        }
+
         return view('positions.create');
     }
 
@@ -36,62 +41,106 @@ class PositionController extends Controller
      */
     public function store(Request $request)
     {
+        if (Auth::user()->role_id > 2) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $validated = $request->validate([
             'position_title' => 'required|string|max:255',
             'job_level'      => 'required|string',
-            'basic_pay'      => 'required|numeric|min:0',
+            'hourly_rate'    => 'required|numeric|min:0',
+            'role_id'        => 'required|integer|in:1,2,3',
         ]);
 
-        $position = Position::create($validated);
+        return DB::transaction(function () use ($validated, $request) {
+            $position = Position::create($validated);
 
-        // Security Audit
-        AuditTrail::create([
-            'user_id' => Auth::id(),
-            'action' => 'CREATE',
-            'module' => 'Positions',
-            'description' => "New job tier established: {$position->position_title} ({$position->job_level}) at ₱" . number_format($position->basic_pay, 2) . "/day"
-        ]);
+            AuditTrail::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'CREATE_POSITION',
+                'module'      => 'Job Structure',
+                'description' => "New job tier established: {$position->position_title} ({$position->job_level}) linked to Role ID: {$position->role_id} at ₱" . number_format($position->hourly_rate, 2) . "/hr",
+                'ip_address'  => $request->ip(),
+            ]);
 
-        return redirect()->route('positions.index')->with('status', 'Position successfully added to the system.');
+            return redirect()->route('positions.index')->with('status', 'Position successfully added to the system.');
+        });
     }
 
     /**
-     * Remove the specified position.
+     * Show the form for editing the specified position.
      */
-
     public function edit($id)
-{
-    $position = Position::findOrFail($id);
-    // Reuse your create view or a separate edit view
-    return view('positions.create', compact('position')); 
-}
-
-// Also add the update method for when they click save:
-public function update(Request $request, $id)
-{
-    $position = Position::findOrFail($id);
-    $position->update($request->all());
-    
-    return redirect()->route('positions.index')->with('status', 'Position updated.');
-}
-    public function destroy($id)
     {
+        if (Auth::user()->role_id > 2) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $position = Position::findOrFail($id);
+        // MODIFIED: Ensure we explicitly pass the position object
+        return view('positions.create', compact('position')); 
+    }
+
+    /**
+     * Update the specified position in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        if (Auth::user()->role_id > 2) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $position = Position::findOrFail($id);
 
-        // Safety check: Don't orphan employees
+        $validated = $request->validate([
+            'position_title' => 'required|string|max:255',
+            'job_level'      => 'required|string',
+            'hourly_rate'    => 'required|numeric|min:0',
+            'role_id'        => 'required|integer|in:1,2,3',
+        ]);
+
+        return DB::transaction(function () use ($position, $validated, $request) {
+            $position->update($validated);
+
+            AuditTrail::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'UPDATE_POSITION',
+                'module'      => 'Job Structure',
+                'description' => "Modified structural parameters for tier: {$position->position_title}. Role Level: {$position->role_id}, Rate: ₱" . number_format($position->hourly_rate, 2) . "/hr",
+                'ip_address'  => $request->ip(),
+            ]);
+
+            return redirect()->route('positions.index')->with('status', 'Position updated.');
+        });
+    }
+
+    /**
+     * Remove the specified position from storage.
+     */
+    public function destroy($id)
+    {
+        if (Auth::user()->role_id > 2) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $position = Position::findOrFail($id);
+
+        // Verification using the relationship loaded in index or explicitly checked here
         if ($position->employees()->count() > 0) {
             return redirect()->back()->with('error', 'STRICT DENIAL: Staff are currently assigned to this position. Reassign them before deletion.');
         }
 
-        // Log the deletion to Audit Trail
-        AuditTrail::create([
-            'user_id' => Auth::id(),
-            'action' => 'DELETE',
-            'module' => 'Positions',
-            'description' => "Terminated job position: {$position->position_title}"
-        ]);
+        return DB::transaction(function () use ($position) {
+            AuditTrail::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'DELETE_POSITION',
+                'module'      => 'Job Structure',
+                'description' => "Terminated job position structure: {$position->position_title} ({$position->job_level})",
+                'ip_address'  => request()->ip(),
+            ]);
 
-        $position->delete();
-        return redirect()->route('positions.index')->with('status', 'Position removed from the organizational structure.');
+            $position->delete();
+            return redirect()->route('positions.index')->with('status', 'Position removed from the organizational structure.');
+        });
     }
 }

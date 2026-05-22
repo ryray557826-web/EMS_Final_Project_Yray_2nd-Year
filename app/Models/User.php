@@ -2,12 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
@@ -15,10 +14,10 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $primaryKey = 'user_id';
 
     protected $fillable = [
-    'name',      // Ensure this is here
-    'email',
-    'password',
-    'role_id',
+        'name',
+        'email',
+        'password',
+        'role_id',
     ];
 
     protected $hidden = [
@@ -32,6 +31,19 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Determine if the user has verified their email address.
+     * Force true for the Super Admin based on your seeder email.
+     */
+    public function hasVerifiedEmail()
+    {
+        if ($this->email === 'r.yray.557826@umindanao.edu.ph') {
+            return true;
+        }
+
+        return !is_null($this->email_verified_at);
     }
 
     /**

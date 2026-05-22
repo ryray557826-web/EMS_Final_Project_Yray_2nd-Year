@@ -9,26 +9,23 @@ class Role extends Model
 {
     use HasFactory;
 
-    // Define the custom primary key
-    protected $primaryKey = 'role_id';
+    protected $table = 'roles';
+    protected $primaryKey = 'id'; // Correctly mapping to the default ID
 
-    // Allow mass assignment for these fields
-    protected $fillable = [
-        'role_id',
-        'role_name',
-    ];
+    protected $fillable = ['name'];
 
     /**
      * Relationship: One Role has many Users.
+     * Changed 'role_id' to 'id' to match the parent key in the roles table.
      */
     public function users()
     {
-        return $this->hasMany(User::class, 'role_id', 'role_id');
+        return $this->hasMany(User::class, 'role_id', 'id');
     }
 
     /**
-     * Relationship: One Role has many Permissions (Pivot).
-     * Only keep this if you are still using the role_permission table.
+     * Relationship: One Role has many Permissions.
+     * Changed 'role_id' to 'id' to match the parent key.
      */
     public function permissions()
     {

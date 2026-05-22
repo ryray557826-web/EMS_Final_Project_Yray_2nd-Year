@@ -1,109 +1,97 @@
 <x-app-layout>
-    <style>
-        .bento-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-        .bento-card {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 1.5rem;
-            padding: 2rem;
-            transition: all 0.3s ease;
-        }
-        .bento-card:hover {
-            border-color: #ff2d75;
-            transform: translateY(-5px);
-        }
-        .text-pink { color: #ff2d75; }
-        .bg-pink { background-color: #ff2d75; }
-        .btn-bento {
-            background: #222;
-            color: white;
-            border: 1px solid #444;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.75rem;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 1rem;
-            transition: 0.3s;
-        }
-        .btn-bento:hover {
-            background: #ff2d75;
-            border-color: #ff2d75;
-        }
-    </style>
-
-    <div class="py-12 bg-[#121212] min-h-screen">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-12 bg-[#0a0a0a] min-h-screen">
+        <div class="max-w-7xl mx-auto px-6">
             
-            <div class="mb-8">
-                <h2 class="text-3xl font-extrabold text-white">
-                    WELCOME, <span class="text-pink">{{ strtoupper(Auth::user()->name) }}</span>
+            {{-- User Welcome Banner --}}
+            <div class="mb-12">
+                <h2 class="text-4xl font-black text-white uppercase tracking-tighter">
+                    WELCOME, <span class="text-[#ff2d75]"> {{ strtoupper(Auth::user()->name) }}</span>
                 </h2>
-                <p class="text-gray-500 uppercase tracking-widest text-xs mt-2">
-                    System Role: {{ Auth::user()->role->role_name ?? 'Employee' }} 
+                <div class="flex items-center gap-3 mt-4">
+                    <span class="px-3 py-1 bg-[#161616] border border-[#262626] text-[10px] font-bold uppercase tracking-widest text-white rounded-lg">
+                        {{ Auth::user()->role->role_name ?? 'Employee' }}
+                    </span>
                     @if(Auth::user()->employee && Auth::user()->employee->branch)
-                        | Branch: {{ Auth::user()->employee->branch->branch_name }}
+                        <span class="text-gray-400 text-xs italic tracking-wide">
+                            {{ Auth::user()->employee->branch->branch_name }}
+                        </span>
                     @endif
-                </p>
+                </div>
             </div>
 
-            <div class="bento-grid">
+            {{-- Main Dashboard Features Grid --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 
-                <div class="bento-card md:col-span-2">
+                {{-- Shared Terminal Block (All Users) --}}
+                <div class="lg:col-span-2 bg-[#161616] border border-[#262626] p-10 rounded-3xl shadow-2xl border-l-4 border-l-[#ff2d75]">
                     <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="text-xl font-bold text-white mb-2">Attendance Terminal</h3>
-                            <p class="text-gray-400 text-sm">Real-time clock-in and clock-out management.</p>
+                            <h3 class="text-2xl font-black text-white uppercase tracking-tighter">Attendance Terminal</h3>
+                            <p class="text-gray-400 text-xs mt-2 uppercase tracking-widest">Clock-in/out and manage your daily logs.</p>
                         </div>
-                        <span class="bg-pink text-white text-[10px] px-2 py-1 rounded font-bold">LIVE</span>
+                        <span class="bg-[#ff2d75]/10 text-[#ff2d75] text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest animate-pulse">Live Now</span>
                     </div>
-                    
-                    <div class="mt-6 flex gap-4">
-                        <a href="{{ route('attendance.index') }}" class="btn-bento font-bold text-pink border-pink">
-                            GO TO CLOCK TERMINAL
-                        </a>
-                    </div>
+                    <a href="{{ route('attendance.index') }}" class="mt-8 inline-block bg-[#ff2d75] hover:bg-[#e62668] text-white font-bold py-3 px-6 rounded-xl transition duration-300 uppercase tracking-widest text-xs">
+                        Open Terminal
+                    </a>
                 </div>
 
+                {{-- Admin & Branch Manager Modules --}}
                 @if(Auth::user()->role_id == 1 || Auth::user()->role_id == 2)
-                <div class="bento-card">
-                    <h3 class="text-xl font-bold text-white mb-2">Staff Directory</h3>
-                    <p class="text-gray-400 text-sm">
-                        {{ Auth::user()->role_id == 1 ? 'Manage all company personnel.' : 'Manage branch staff.' }}
-                    </p>
-                    <a href="{{ route('employees.index') }}" class="btn-bento">View Employees</a>
-                </div>
+                    <div class="bg-[#161616] border border-[#262626] p-8 rounded-3xl shadow-2xl">
+                        <h3 class="text-lg font-black text-white uppercase tracking-tighter mb-2">Staff Directory</h3>
+                        <p class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Manage personnel and access.</p>
+                        <a href="{{ route('employees.index') }}" class="text-[#ff2d75] font-bold text-[10px] uppercase tracking-widest underline underline-offset-4">View Employees</a>
+                    </div>
+
+                    <div class="bg-[#161616] border border-[#262626] p-8 rounded-3xl shadow-2xl">
+                        <h3 class="text-lg font-black text-white uppercase tracking-tighter mb-2">Payroll Engine</h3>
+                        <p class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Execute pay runs and sync.</p>
+                        <a href="{{ route('payroll.index') }}" class="text-[#ff2d75] font-bold text-[10px] uppercase tracking-widest underline underline-offset-4">Process Payroll</a>
+                    </div>
+
+                    <div class="bg-[#161616] border border-[#262626] p-8 rounded-3xl shadow-2xl">
+                        <h3 class="text-lg font-black text-white uppercase tracking-tighter mb-2">KPI Scorecards</h3>
+                        <p class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Review performance metrics.</p>
+                        <a href="{{ route('kpi.index') }}" class="text-[#ff2d75] font-bold text-[10px] uppercase tracking-widest underline underline-offset-4">View Metrics</a>
+                    </div>
                 @endif
 
+                {{-- Super Admin Restricted Infrastructure --}}
                 @if(Auth::user()->role_id == 1)
-                <div class="bento-card">
-                    <h3 class="text-xl font-bold text-white mb-2">Job Structure</h3>
-                    <p class="text-gray-400 text-sm">Configure job titles and base salary rates.</p>
-                    <a href="{{ route('positions.index') }}" class="btn-bento">Manage Positions</a>
-                </div>
+                    {{-- NEW: Salary Profiles Component Box --}}
+                    <div class="bg-[#161616] border border-[#262626] p-8 rounded-3xl shadow-2xl border-t-2 border-t-[#ff2d75]">
+                        <h3 class="text-lg font-black text-white uppercase tracking-tighter mb-2">Salary Profiles</h3>
+                        <p class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Manage base rates, allowances, and structures.</p>
+                        <a href="{{ route('salary-profiles.index') }}" class="text-[#ff2d75] font-bold text-[10px] uppercase tracking-widest underline underline-offset-4">Manage Profiles</a>
+                    </div>
 
-                <div class="bento-card">
-                    <h3 class="text-xl font-bold text-white mb-2">Branch Network</h3>
-                    <p class="text-gray-400 text-sm">Assign Admins and manage office locations.</p>
-                    <a href="{{ route('branches.index') }}" class="btn-bento">Edit Branches</a>
-                </div>
+                    <div class="bg-[#161616] border border-[#262626] p-8 rounded-3xl shadow-2xl">
+                        <h3 class="text-lg font-black text-white uppercase tracking-tighter mb-2">Job Structure</h3>
+                        <p class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Positions and pay scales.</p>
+                        <a href="{{ route('positions.index') }}" class="text-[#ff2d75] font-bold text-[10px] uppercase tracking-widest underline underline-offset-4">Manage Positions</a>
+                    </div>
 
-                <div class="bento-card">
-                    <h3 class="text-xl font-bold text-white mb-2">System Audit</h3>
-                    <p class="text-gray-400 text-sm">Review logs and security modifications.</p>
-                    <a href="{{ route('audit.index') }}" class="btn-bento">View Trails</a>
-                </div>
+                    <div class="bg-[#161616] border border-[#262626] p-8 rounded-3xl shadow-2xl">
+                        <h3 class="text-lg font-black text-white uppercase tracking-tighter mb-2">Branch Network</h3>
+                        <p class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Office location settings.</p>
+                        <a href="{{ route('branches.index') }}" class="text-[#ff2d75] font-bold text-[10px] uppercase tracking-widest underline underline-offset-4">Edit Branches</a>
+                    </div>
+
+                    <div class="bg-[#161616] border border-[#262626] p-8 rounded-3xl shadow-2xl">
+                        <h3 class="text-lg font-black text-white uppercase tracking-tighter mb-2">System Audit</h3>
+                        <p class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Security and activity logs.</p>
+                        <a href="{{ route('audit.index') }}" class="text-[#ff2d75] font-bold text-[10px] uppercase tracking-widest underline underline-offset-4">View Audit Logs</a>
+                    </div>
                 @endif
 
+                {{-- Standard Employee History Views --}}
                 @if(Auth::user()->role_id == 3)
-                <div class="bento-card">
-                    <h3 class="text-xl font-bold text-white mb-2">My History</h3>
-                    <p class="text-gray-400 text-sm">Review your past attendance logs (Read-only).</p>
-                    <a href="{{ route('attendance.index') }}" class="btn-bento">View My Logs</a>
-                </div>
+                    <div class="bg-[#161616] border border-[#262626] p-8 rounded-3xl shadow-2xl">
+                        <h3 class="text-lg font-black text-white uppercase tracking-tighter mb-2">My History</h3>
+                        <p class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Verified attendance logs.</p>
+                        <a href="{{ route('attendance.index') }}" class="text-[#ff2d75] font-bold text-[10px] uppercase tracking-widest underline underline-offset-4">View My Logs</a>
+                    </div>
                 @endif
 
             </div>

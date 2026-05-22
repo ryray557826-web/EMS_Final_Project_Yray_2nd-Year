@@ -11,13 +11,16 @@ return new class extends Migration
      */
     public function up(): void
 {
-    Schema::create('salary_profiles', function (Blueprint $table) {
-        $table->id('salary_id');
-        $table->foreignId('employee_id')->constrained('employees', 'employee_id')->onDelete('cascade');
-        $table->decimal('base_hourly_rate', 10, 2)->default(0.00); // Pulled from Position initially
-        $table->decimal('total_allowance', 10, 2)->default(0.00);
-        $table->timestamps();
-    });
+Schema::create('salary_profiles', function (Blueprint $table) {
+    $table->id('salary_id');
+    $table->foreignId('employee_id')->constrained('employees', 'employee_id')->onDelete('cascade');
+    
+    $table->foreignId('position_id')->constrained('positions', 'position_id')->onDelete('cascade');
+    
+    $table->decimal('base_hourly_rate', 10, 2)->default(0.00); 
+    $table->decimal('total_allowance', 10, 2)->default(0.00);
+    $table->timestamps();
+});
 }
 
     /**
