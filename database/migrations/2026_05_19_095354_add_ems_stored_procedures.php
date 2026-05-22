@@ -5,8 +5,10 @@ use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
     public function up(): void {
+        // Ensure no leftover procedure exists
         DB::unprepared("DROP PROCEDURE IF EXISTS ProcessPayrollWithTransaction");
         
+        // Execute the procedure creation
         DB::unprepared("
             CREATE PROCEDURE ProcessPayrollWithTransaction(
                 IN p_emp_id BIGINT UNSIGNED,
@@ -29,7 +31,6 @@ return new class extends Migration {
 
                 START TRANSACTION;
                 
-                -- Insert the standard payroll tracking ledger record
                 INSERT INTO payroll_transactions (
                     employee_id, gross_amount, bonus_amount, deductions, 
                     net_amount, reference_number, pay_period_start, 
@@ -40,7 +41,6 @@ return new class extends Migration {
                     p_end, 'Processed', 0, NOW(), NOW()
                 );
                 
-                -- Global system audit logger registration
                 INSERT INTO audit_trails (
                     user_id, action, module, description, ip_address, created_at, updated_at
                 ) VALUES (
@@ -50,7 +50,7 @@ return new class extends Migration {
                 );
 
                 COMMIT;
-            END;
+            END
         ");
     }
 
