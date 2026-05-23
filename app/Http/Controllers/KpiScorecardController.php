@@ -11,12 +11,28 @@ use Illuminate\Support\Facades\Auth;
 class KpiScorecardController extends Controller
 {
     /**
-     * Display a comprehensive listing of performance metrics.
+     * Display a comprehensive listing of performance metrics and dropdown personnel.
      */
     public function index()
     {
-        $scorecards = KpiScorecard::with('employee')->latest()->get();
-        return view('kpi.index', compact('scorecards'));
+        $manager = Auth::user();
+
+        // 1. Fetch only the staff members belonging to this manager's branch (excluding the manager themselves)
+        // Note: Change 'branch' to 'branch_id' or your actual column name if it uses an ID instead of a string.
+        $employees = Employee::where('branch', $manager->branch)
+            ->where('employee_id', '!=', $manager->employee_id) 
+            ->get();
+
+        // 2. Fetch historical scorecards specifically for this branch so managers don't see other branches' data
+        $scorecards = KpiScorecard::with('employee')
+            ->whereHas('employee', function ($query) use ($manager) {
+                $query->where('branch', $manager->branch);
+            })
+            ->latest()
+            ->get();
+
+        // Pass BOTH variables back to your single dashboard view
+        return view('kpi.index', compact('scorecards', 'employees'));
     }
 
     /**

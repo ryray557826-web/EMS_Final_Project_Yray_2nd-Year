@@ -17,17 +17,12 @@
                         @csrf
                         <div class="flex flex-col gap-2">
                             <label class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Target Staff</label>
-                            <select name="employee_id" class="bg-[#0a0a0a] border border-[#262626] rounded-xl p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
-                                <option value="" disabled selected>Select personnel...</option>
-                                @php
-                                    // Security Layer: Filter selection box options by assigned management branch context
-                                    $allowedStaff = Auth::user()->role_id == 1 
-                                        ? \App\Models\Employee::orderBy('full_name')->get() 
-                                        : \App\Models\Employee::where('branch_id', Auth::user()->branch_id)->orderBy('full_name')->get();
-                                @endphp
-                                @foreach($allowedStaff as $emp)
-                                    <option value="{{ $emp->employee_id }}">
-                                        {{ $emp->full_name }} @if(Auth::user()->role_id == 1 && $emp->branch) ({{ $emp->branch->name ?? 'Branch #'.$emp->branch_id }}) @endif
+                            {{-- Styled dropdown to perfectly match the dark theme inputs --}}
+                            <select name="employee_id" id="target_staff" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl p-4 text-sm text-white focus:border-[#ff2d75] outline-none transition appearance-none cursor-pointer" required>
+                                <option value="" class="text-gray-500">Select personnel...</option>
+                                @foreach($employees as $staff)
+                                    <option value="{{ $staff->employee_id }}" class="bg-[#161616] text-white">
+                                        {{ $staff->full_name }}
                                     </option>
                                 @endforeach
                             </select>
