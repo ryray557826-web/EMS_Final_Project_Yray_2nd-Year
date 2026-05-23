@@ -22,6 +22,9 @@ class PayrollController extends Controller
         return view('payroll.create', compact('employees'));
     }
 
+    /**
+     * Store a newly created payroll transaction in storage.
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -37,13 +40,13 @@ class PayrollController extends Controller
 
         $reference = 'REF-' . strtoupper(uniqid());
 
-        // 1. Run core database stored procedure
+        // Run your core database system procedure
         DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
             $request->employee_id,
             $grossAmount,
-            0.00, // Initial bonus
-            0.00, // Initial deductions
-            $grossAmount, // Initial net
+            0.00,
+            0.00,
+            $grossAmount, // Sets initial net_amount equal to gross_amount
             $reference,
             $request->pay_period_start,
             $request->pay_period_end,
@@ -54,35 +57,19 @@ class PayrollController extends Controller
         $newPayroll = PayrollTransaction::where('reference_number', $reference)->first();
         
         if ($newPayroll) {
-            // CRITICAL FIX: If Super Admin, completely skip staging, calculate final gross, and commit instantly
+            // Super Admin bypasses standard request workflows but remains unlocked for manual modifications
             if (Auth::user()->role_id == 1) {
-                DB::transaction(function () use ($newPayroll) {
-                    $totalGrossCalculated = $newPayroll->gross_amount + $newPayroll->bonus_amount;
-
-                    $newPayroll->final_gross_pay = $totalGrossCalculated;
-                    $newPayroll->status          = 'Processed';
-                    $newPayroll->is_locked       = true; // Lock immediately
-                    $newPayroll->save();
-
-                    // Instantly add to employee balance ledger
-                    DB::table('salary_profiles')
-                        ->where('employee_id', $newPayroll->employee_id)
-                        ->increment('total_allowance', $totalGrossCalculated);
-                });
-
-                $this->logAudit('COMMIT', "Super Admin auto-processed and locked ledger row: {$reference}", $newPayroll->transaction_id);
-                return redirect()->route('payroll.index')->with('success', 'Payroll calculated, finalized, and balance allocated instantly.');
+                $newPayroll->status = 'Processed';
             } else {
-                // Branch Admin: Keep open as an editable request change staging unit
                 $newPayroll->status = 'Pending Approval';
-                $newPayroll->is_locked = false;
-                $newPayroll->save();
-                
-                return redirect()->route('payroll.index')->with('success', 'Branch modification request logged successfully.');
             }
+            
+            $newPayroll->is_locked = false;
+            $newPayroll->final_gross_pay = null; // Stays "Unfinalized" on the dashboard desk view
+            $newPayroll->save();
         }
 
-        return redirect()->route('payroll.index')->with('error', 'Error compiling transaction state data.');
+        return redirect()->route('payroll.index')->with('success', 'Payroll structural calculation initialized successfully.');
     }
 
     public function manage($id)
@@ -102,6 +89,9 @@ class PayrollController extends Controller
         return view('payroll.edit', compact('payroll'));
     }
 
+    /**
+     * Update/Commit the state of the payroll ledger.
+     */
     public function update(Request $request, $id)
     {
         $payroll = PayrollTransaction::findOrFail($id);
@@ -112,11 +102,13 @@ class PayrollController extends Controller
 
         $action = $request->input('admin_action');
 
-        // 1. Handle Structural Adjustments
+        // 1. Handle Structural Adjustments (Before Commit)
         if ($action === 'edit_hours') {
             $gross = $request->input('gross_amount', 0);
             $bonus = $request->input('bonus_amount', 0);
             $deductions = $request->input('deductions', 0);
+            
+            // NET PAY SOLUTION: Explicitly force the mathematical calculation here
             $net = ($gross + $bonus) - $deductions;
 
             $status = (Auth::user()->role_id == 2) ? 'Pending Approval' : 'Processed';
@@ -135,20 +127,19 @@ class PayrollController extends Controller
         // 2. Handle Definitive Lock Closures (Commit Action)
         if ($action === 'commit') {
             DB::transaction(function () use ($payroll) {
-                // FIX: Calculate total comprehensive gross pay (Base Gross + Bonuses added)
-                $totalGrossCalculated = $payroll->gross_amount + $payroll->bonus_amount;
-
-                $payroll->final_gross_pay = $totalGrossCalculated;
+                // NET PAY SOLUTION: Map final_gross_pay column to the computed net take-home balance value
+                $payroll->final_gross_pay = $payroll->net_amount;
                 $payroll->status          = 'Processed'; 
-                $payroll->is_locked       = true;        
+                $payroll->is_locked       = true; // Write-protects the transaction ledger row
                 $payroll->save();
 
+                // NET PAY SOLUTION: Increment allowance profile with net_amount (including bonuses/deductions)
                 DB::table('salary_profiles')
                     ->where('employee_id', $payroll->employee_id)
-                    ->increment('total_allowance', $totalGrossCalculated);
+                    ->increment('total_allowance', $payroll->net_amount);
             });
 
-            $this->logAudit('COMMIT', "Finalized compensation ledger payout.", $id);
+            $this->logAudit('COMMIT', "Finalized compensation ledger payout for ref: {$payroll->reference_number}.", $id);
             return redirect()->route('payroll.index')->with('success', 'Ledger locked and employee balance allocated.');
         }
 
@@ -173,7 +164,7 @@ class PayrollController extends Controller
             }
         }
 
-        // 4. Handle Standard Status State Mutations (Reject Action)
+        // 4. Handle Reject Actions
         if ($action === 'reject') {
             $payroll->status = 'Rejected';
             $payroll->is_locked = true; 
