@@ -89,7 +89,6 @@ class PayrollController extends Controller
 
             $status = (Auth::user()->role_id == 2) ? 'Pending Approval' : 'Processed';
 
-            // Direct mapping avoids mass-assignment blocks
             $payroll->gross_amount = $gross;
             $payroll->bonus_amount = $bonus;
             $payroll->deductions   = $deductions;
@@ -104,10 +103,10 @@ class PayrollController extends Controller
         // 2. Handle Definitive Lock Closures (Commit Action)
         if ($action === 'commit') {
             DB::transaction(function () use ($payroll) {
-                // Explicitly saving properties sets values bypasses model guard constraints
+                // FIXED: Changed back to 'Processed' to fit database strict ENUM constraints
                 $payroll->final_gross_pay = $payroll->gross_amount;
-                $payroll->status          = 'Completed'; // Matches your green dashboard badge status mapping
-                $payroll->is_locked       = true;        // Enforces UI lock state
+                $payroll->status          = 'Processed'; 
+                $payroll->is_locked       = true;        
                 $payroll->save();
 
                 DB::table('salary_profiles')
@@ -143,7 +142,7 @@ class PayrollController extends Controller
         // 4. Handle Standard Status State Mutations (Reject Action)
         if ($action === 'reject') {
             $payroll->status = 'Rejected';
-            $payroll->is_locked = true; // Rejecting explicitly locks the ledger row context
+            $payroll->is_locked = true; 
             $payroll->save();
 
             $this->logAudit('REJECT', "Status context changed to Rejected", $id);

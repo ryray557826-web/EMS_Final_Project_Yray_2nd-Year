@@ -61,7 +61,7 @@
                                             <td class="py-4 px-2 font-bold">₱{{ number_format($req->net_amount, 2) }}</td>
                                             <td class="py-4 px-2 text-gray-400">{{ $req->notes ?? 'Modification requested.' }}</td>
                                             <td class="py-4 px-2 text-center">
-                                                @if($req->is_locked || in_array(strtolower($req->status), ['completed', 'rejected']))
+                                                @if($req->is_locked || in_array(strtolower($req->status), ['completed', 'processed', 'rejected']))
                                                     <span class="text-gray-600 text-[10px] font-black uppercase tracking-widest italic select-none">
                                                         Resolved
                                                     </span>
@@ -115,18 +115,17 @@
                                         @php
                                             $normalizedStatus = strtolower($payroll->status);
                                             
+                                            // FIXED: Mapped 'processed' to green badge style since it represents your successful finalized state
                                             $statusClass = $normalizedStatus === 'pending approval' ? 'bg-yellow-500/10 text-yellow-500' : 
-                                                          ($normalizedStatus === 'completed' ? 'bg-green-500/10 text-green-500' : 
-                                                          ($normalizedStatus === 'processed' ? 'bg-blue-500/10 text-blue-400' : 
-                                                          ($normalizedStatus === 'rolled back' ? 'bg-orange-500/10 text-orange-400' : 'bg-red-500/10 text-red-500')));
+                                                          ($normalizedStatus === 'processed' || $normalizedStatus === 'completed' ? 'bg-green-500/10 text-green-500' : 
+                                                          ($normalizedStatus === 'rolled back' ? 'bg-orange-500/10 text-orange-400' : 'bg-red-500/10 text-red-500'));
                                         @endphp
                                         <span class="{{ $statusClass }} px-2 py-1 rounded-md font-black uppercase tracking-widest text-[9px]">
                                             {{ $payroll->status }}
                                         </span>
                                     </td>
                                     <td class="py-4 px-2 text-center">
-                                        {{-- Evaluates both structural variables and text state gates safely --}}
-                                        @if($payroll->is_locked || in_array(strtolower($payroll->status), ['completed', 'rejected']))
+                                        @if($payroll->is_locked || in_array(strtolower($payroll->status), ['completed', 'processed', 'rejected']))
                                             <span class="bg-[#1c1c1c] text-gray-600 border border-[#262626] px-4 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest cursor-not-allowed select-none inline-block inline-flex items-center gap-1">
                                                 🔒 Locked
                                             </span>
