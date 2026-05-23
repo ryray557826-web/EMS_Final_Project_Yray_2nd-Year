@@ -17,16 +17,15 @@ class KpiScorecardController extends Controller
     {
         $manager = Auth::user();
 
-        // 1. Fetch only the staff members belonging to this manager's branch (excluding the manager themselves)
-        // Note: Change 'branch' to 'branch_id' or your actual column name if it uses an ID instead of a string.
-        $employees = Employee::where('branch', $manager->branch)
+        // 1. Fetch staff members belonging to this manager's branch_id (excluding the manager)
+        $employees = Employee::where('branch_id', $manager->branch_id)
             ->where('employee_id', '!=', $manager->employee_id) 
             ->get();
 
-        // 2. Fetch historical scorecards specifically for this branch so managers don't see other branches' data
+        // 2. Fetch historical scorecards specifically for this branch_id
         $scorecards = KpiScorecard::with('employee')
             ->whereHas('employee', function ($query) use ($manager) {
-                $query->where('branch', $manager->branch);
+                $query->where('branch_id', $manager->branch_id);
             })
             ->latest()
             ->get();
