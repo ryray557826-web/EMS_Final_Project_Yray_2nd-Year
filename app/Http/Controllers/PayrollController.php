@@ -37,12 +37,13 @@ class PayrollController extends Controller
 
         $reference = 'REF-' . strtoupper(uniqid());
 
+        // 1. Run core database stored procedure
         DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
             $request->employee_id,
             $grossAmount,
-            0.00,
-            0.00,
-            $grossAmount,
+            0.00, // Initial bonus
+            0.00, // Initial deductions
+            $grossAmount, // Initial net
             $reference,
             $request->pay_period_start,
             $request->pay_period_end,
@@ -50,16 +51,38 @@ class PayrollController extends Controller
             $request->ip()
         ]);
 
-        // FIX: Route state intelligently depending on who initialized the creation
         $newPayroll = PayrollTransaction::where('reference_number', $reference)->first();
+        
         if ($newPayroll) {
-            // Branch Admins generate standard approval requests. Super Admins bypass staging directly to Processed.
-            $newPayroll->status = (Auth::user()->role_id == 2) ? 'Pending Approval' : 'Processed';
-            $newPayroll->is_locked = false; // Keeps it editable for modifications until committed/locked
-            $newPayroll->save();
+            // CRITICAL FIX: If Super Admin, completely skip staging, calculate final gross, and commit instantly
+            if (Auth::user()->role_id == 1) {
+                DB::transaction(function () use ($newPayroll) {
+                    $totalGrossCalculated = $newPayroll->gross_amount + $newPayroll->bonus_amount;
+
+                    $newPayroll->final_gross_pay = $totalGrossCalculated;
+                    $newPayroll->status          = 'Processed';
+                    $newPayroll->is_locked       = true; // Lock immediately
+                    $newPayroll->save();
+
+                    // Instantly add to employee balance ledger
+                    DB::table('salary_profiles')
+                        ->where('employee_id', $newPayroll->employee_id)
+                        ->increment('total_allowance', $totalGrossCalculated);
+                });
+
+                $this->logAudit('COMMIT', "Super Admin auto-processed and locked ledger row: {$reference}", $newPayroll->transaction_id);
+                return redirect()->route('payroll.index')->with('success', 'Payroll calculated, finalized, and balance allocated instantly.');
+            } else {
+                // Branch Admin: Keep open as an editable request change staging unit
+                $newPayroll->status = 'Pending Approval';
+                $newPayroll->is_locked = false;
+                $newPayroll->save();
+                
+                return redirect()->route('payroll.index')->with('success', 'Branch modification request logged successfully.');
+            }
         }
 
-        return redirect()->route('payroll.index')->with('success', 'Payroll structural calculation initialized successfully.');
+        return redirect()->route('payroll.index')->with('error', 'Error compiling transaction state data.');
     }
 
     public function manage($id)
@@ -112,14 +135,17 @@ class PayrollController extends Controller
         // 2. Handle Definitive Lock Closures (Commit Action)
         if ($action === 'commit') {
             DB::transaction(function () use ($payroll) {
-                $payroll->final_gross_pay = $payroll->gross_amount;
+                // FIX: Calculate total comprehensive gross pay (Base Gross + Bonuses added)
+                $totalGrossCalculated = $payroll->gross_amount + $payroll->bonus_amount;
+
+                $payroll->final_gross_pay = $totalGrossCalculated;
                 $payroll->status          = 'Processed'; 
                 $payroll->is_locked       = true;        
                 $payroll->save();
 
                 DB::table('salary_profiles')
                     ->where('employee_id', $payroll->employee_id)
-                    ->increment('total_allowance', $payroll->gross_amount);
+                    ->increment('total_allowance', $totalGrossCalculated);
             });
 
             $this->logAudit('COMMIT', "Finalized compensation ledger payout.", $id);
