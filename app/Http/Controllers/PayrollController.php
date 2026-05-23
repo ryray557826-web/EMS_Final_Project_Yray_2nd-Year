@@ -26,53 +26,62 @@ class PayrollController extends Controller
      * Store a newly created payroll transaction in storage.
      */
     public function store(Request $request)
-{
-    $request->validate([
-        'employee_id'      => 'required|exists:employees,employee_id',
-        'hours_worked'     => 'required|numeric|min:0',
-        'pay_period_start' => 'required|date',
-        'pay_period_end'   => 'required|date|after:pay_period_start',
-    ]);
+    {
+        $request->validate([
+            'employee_id'      => 'required|exists:employees,employee_id',
+            'hours_worked'     => 'required|numeric|min:0',
+            'pay_period_start' => 'required|date',
+            'pay_period_end'   => 'required|date|after:pay_period_start',
+        ]);
 
-    // Fetch the target employee along with their payroll compensation configurations
-    $employee = Employee::with('salaryProfile')->findOrFail($request->employee_id);
-    
-    // Ensure the employee has a base rate configuration so it doesn't default to zero
-    $hourlyRate = 0.00;
-    if ($employee->salaryProfile && $employee->salaryProfile->base_hourly_rate) {
-        $hourlyRate = (float) $employee->salaryProfile->base_hourly_rate;
+        // 1. Fetch the target employee
+        $employee = Employee::findOrFail($request->employee_id);
+        
+        // 2. Direct DB Query to eliminate any potential Eloquent relationship bugs
+        $salaryProfile = DB::table('salary_profiles')
+            ->where('employee_id', $request->employee_id)
+            ->first();
+
+        // 3. Strict Check: Prevent silent ₱0.00 processing if the rate is missing or zero
+        if (!$salaryProfile || empty($salaryProfile->base_hourly_rate) || (float)$salaryProfile->base_hourly_rate === 0.00) {
+            return back()->withErrors([
+                'employee_id' => "Cannot process payroll: {$employee->full_name} does not have a valid Base Hourly Rate configured in the salary_profiles database table."
+            ])->withInput();
+        }
+
+        // 4. Process math parameters cleanly
+        $hourlyRate  = (float) $salaryProfile->base_hourly_rate;
+        $hoursWorked = (float) $request->hours_worked;
+        $grossAmount = $hourlyRate * $hoursWorked;
+
+        $reference = 'REF-' . strtoupper(uniqid());
+
+        // 5. Execute core database stored procedure mapping sequence
+        DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+            $request->employee_id,
+            $grossAmount,
+            0.00, // Initial adjustments baseline
+            0.00, // Initial deductions baseline
+            $grossAmount, // Net amount directly matches initial gross pay calculations
+            $reference,
+            $request->pay_period_start,
+            $request->pay_period_end,
+            Auth::id(),
+            $request->ip()
+        ]);
+
+        // 6. Explicit Object Overwrite: Ensures values match the calculated outputs perfectly
+        $payroll = \App\Models\PayrollTransaction::where('reference_number', $reference)->first();
+        if ($payroll) {
+            $payroll->gross_amount = $grossAmount;
+            $payroll->net_amount   = $grossAmount;
+            $payroll->status       = 'Pending Approval';
+            $payroll->is_locked    = false;
+            $payroll->save();
+        }
+
+        return redirect()->route('payroll.index')->with('success', "Payroll initialized for {$employee->full_name} with {$hoursWorked} hours processed.");
     }
-
-    // Process calculations using the exact hours typed into the input field
-    $hoursWorked = (float) $request->hours_worked;
-    $grossAmount = $hourlyRate * $hoursWorked;
-
-    $reference = 'REF-' . strtoupper(uniqid());
-
-    // Execute core database records mapping sequence
-    DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
-        $request->employee_id,
-        $grossAmount,
-        0.00, // Initial adjustments baseline
-        0.00, // Initial deductions baseline
-        $grossAmount, // Net amount directly matches initial gross pay calculations
-        $reference,
-        $request->pay_period_start,
-        $request->pay_period_end,
-        Auth::id(),
-        $request->ip()
-    ]);
-
-    // Set transactional state records parameters
-    $payroll = \App\Models\PayrollTransaction::where('reference_number', $reference)->first();
-    if ($payroll) {
-        $payroll->status = 'Pending Approval';
-        $payroll->is_locked = false;
-        $payroll->save();
-    }
-
-    return redirect()->route('payroll.index')->with('success', "Payroll initialized for {$employee->full_name} with {$hoursWorked} hours processed.");
-}
 
     public function manage($id)
     {
@@ -104,15 +113,13 @@ class PayrollController extends Controller
 
         $action = $request->input('admin_action');
 
-        // 1. Handle Structural Adjustments (Before Commit)
+        // Handle Structural Adjustments (Before Commit)
         if ($action === 'edit_hours') {
             $gross = $request->input('gross_amount', 0);
             $bonus = $request->input('bonus_amount', 0);
             $deductions = $request->input('deductions', 0);
             
-            // NET PAY SOLUTION: Explicitly force the mathematical calculation here
             $net = ($gross + $bonus) - $deductions;
-
             $status = (Auth::user()->role_id == 2) ? 'Pending Approval' : 'Processed';
 
             $payroll->gross_amount = $gross;
@@ -126,16 +133,14 @@ class PayrollController extends Controller
             return redirect()->route('payroll.index')->with('success', 'Payroll modifications saved.');
         }
 
-        // 2. Handle Definitive Lock Closures (Commit Action)
+        // Handle Definitive Lock Closures (Commit Action)
         if ($action === 'commit') {
             DB::transaction(function () use ($payroll) {
-                // NET PAY SOLUTION: Map final_gross_pay column to the computed net take-home balance value
                 $payroll->final_gross_pay = $payroll->net_amount;
                 $payroll->status          = 'Processed'; 
-                $payroll->is_locked       = true; // Write-protects the transaction ledger row
+                $payroll->is_locked       = true; 
                 $payroll->save();
 
-                // NET PAY SOLUTION: Increment allowance profile with net_amount (including bonuses/deductions)
                 DB::table('salary_profiles')
                     ->where('employee_id', $payroll->employee_id)
                     ->increment('total_allowance', $payroll->net_amount);
@@ -145,7 +150,7 @@ class PayrollController extends Controller
             return redirect()->route('payroll.index')->with('success', 'Ledger locked and employee balance allocated.');
         }
 
-        // 3. Handle Rollback Actions
+        // Handle Rollback Actions
         if ($action === 'rollback') {
             DB::beginTransaction();
             try {
@@ -166,7 +171,7 @@ class PayrollController extends Controller
             }
         }
 
-        // 4. Handle Reject Actions
+        // Handle Reject Actions
         if ($action === 'reject') {
             $payroll->status = 'Rejected';
             $payroll->is_locked = true; 
