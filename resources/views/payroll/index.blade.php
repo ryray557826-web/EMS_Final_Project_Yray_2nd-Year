@@ -104,8 +104,8 @@
                                     <td class="py-4 px-2 font-mono text-gray-400">{{ $payroll->reference_number }}</td>
                                     <td class="py-4 px-2 font-bold">{{ $payroll->employee->full_name }}</td>
                                     <td class="py-4 px-2 text-gray-400">₱{{ number_format($payroll->gross_amount, 2) }}</td>
-                                    <td class="py-4 px-2 font-mono {{ $payroll->final_gross_pay ? 'text-green-400 font-bold' : 'text-gray-600 italic' }}">
-                                        {{ $payroll->final_gross_pay ? '₱'.number_format($payroll->final_gross_pay, 2) : 'Unfinalized' }}
+                                    <td class="py-4 px-2 font-mono {{ $payroll->final_gross_pay !== null ? 'text-green-400 font-bold' : 'text-gray-600 italic' }}">
+                                        {{ $payroll->final_gross_pay !== null ? '₱'.number_format($payroll->final_gross_pay, 2) : 'Unfinalized' }}
                                     </td>
                                     <td class="py-4 px-2 text-[#ff2d75] font-black">₱{{ number_format($payroll->net_amount, 2) }}</td>
                                     <td class="py-4 px-2 text-gray-400">
@@ -113,7 +113,6 @@
                                     </td>
                                     <td class="py-4 px-2">
                                         @php
-                                            // Using strtolower to prevent string mismatch issues during structural calculations
                                             $normalizedStatus = strtolower($payroll->status);
                                             
                                             $statusClass = $normalizedStatus === 'pending approval' ? 'bg-yellow-500/10 text-yellow-500' : 
@@ -126,7 +125,7 @@
                                         </span>
                                     </td>
                                     <td class="py-4 px-2 text-center">
-                                        {{-- Explicit Case-Insensitive Operational Safety Gate --}}
+                                        {{-- Evaluates both structural variables and text state gates safely --}}
                                         @if($payroll->is_locked || in_array(strtolower($payroll->status), ['completed', 'rejected']))
                                             <span class="bg-[#1c1c1c] text-gray-600 border border-[#262626] px-4 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest cursor-not-allowed select-none inline-block inline-flex items-center gap-1">
                                                 🔒 Locked

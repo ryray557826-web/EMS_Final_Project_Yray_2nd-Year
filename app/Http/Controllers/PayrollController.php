@@ -89,26 +89,26 @@ class PayrollController extends Controller
 
             $status = (Auth::user()->role_id == 2) ? 'Pending Approval' : 'Processed';
 
-            $payroll->update([
-                'gross_amount' => $gross,
-                'bonus_amount' => $bonus,
-                'deductions'   => $deductions,
-                'net_amount'   => $net,
-                'status'       => $status
-            ]);
+            // Direct mapping avoids mass-assignment blocks
+            $payroll->gross_amount = $gross;
+            $payroll->bonus_amount = $bonus;
+            $payroll->deductions   = $deductions;
+            $payroll->net_amount   = $net;
+            $payroll->status       = $status;
+            $payroll->save();
 
             $this->logAudit('UPDATE', "Adjusted amounts for record base: {$payroll->reference_number}", $id);
             return redirect()->route('payroll.index')->with('success', 'Payroll modifications saved.');
         }
 
-        // 2. Handle Definitive Lock Closures
+        // 2. Handle Definitive Lock Closures (Commit Action)
         if ($action === 'commit') {
             DB::transaction(function () use ($payroll) {
-                $payroll->update([
-                    'final_gross_pay' => $payroll->gross_amount,
-                    'status'          => 'Processed',
-                    'is_locked'       => true
-                ]);
+                // Explicitly saving properties sets values bypasses model guard constraints
+                $payroll->final_gross_pay = $payroll->gross_amount;
+                $payroll->status          = 'Completed'; // Matches your green dashboard badge status mapping
+                $payroll->is_locked       = true;        // Enforces UI lock state
+                $payroll->save();
 
                 DB::table('salary_profiles')
                     ->where('employee_id', $payroll->employee_id)
@@ -127,7 +127,7 @@ class PayrollController extends Controller
                 $payroll->net_amount = $payroll->gross_amount; 
                 $payroll->bonus_amount = 0.00;                 
                 $payroll->deductions = 0.00;                   
-                
+                $payroll->is_locked = false;
                 $payroll->save();
 
                 $this->logAudit('ROLLBACK', "Direct MySQL rollback on ref: {$payroll->reference_number}.", $id);
@@ -140,12 +140,14 @@ class PayrollController extends Controller
             }
         }
 
-        // 4. Handle Standard Status State Mutations
-        $statusMap = ['reject' => 'Rejected'];
-        if (array_key_exists($action, $statusMap)) {
-            $payroll->update(['status' => $statusMap[$action]]);
-            $this->logAudit(strtoupper($action), "Status context: " . $statusMap[$action], $id);
-            return redirect()->route('payroll.index')->with('success', 'Status updated successfully.');
+        // 4. Handle Standard Status State Mutations (Reject Action)
+        if ($action === 'reject') {
+            $payroll->status = 'Rejected';
+            $payroll->is_locked = true; // Rejecting explicitly locks the ledger row context
+            $payroll->save();
+
+            $this->logAudit('REJECT', "Status context changed to Rejected", $id);
+            return redirect()->route('payroll.index')->with('success', 'Payroll transaction rejected and permanently locked.');
         }
 
         return redirect()->route('payroll.index')->with('error', 'Execution mismatch.');
