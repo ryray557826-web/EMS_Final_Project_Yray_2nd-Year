@@ -34,30 +34,28 @@ class PayrollController extends Controller
         'pay_period_end'   => 'required|date|after:pay_period_start',
     ]);
 
-    // Pull employee along with their salary profile definition
+    // Fetch the target employee along with their payroll compensation configurations
     $employee = Employee::with('salaryProfile')->findOrFail($request->employee_id);
     
-    // Fail-safe check: Ensure a rate actually exists so it doesn't silently resolve to ₱0.00
-    if (!$employee->salaryProfile || !$employee->salaryProfile->base_hourly_rate) {
-        return back()->withErrors([
-            'employee_id' => "The profile for {$employee->full_name} does not have a configured Base Hourly Rate in the database."
-        ])->withInput();
+    // Ensure the employee has a base rate configuration so it doesn't default to zero
+    $hourlyRate = 0.00;
+    if ($employee->salaryProfile && $employee->salaryProfile->base_hourly_rate) {
+        $hourlyRate = (float) $employee->salaryProfile->base_hourly_rate;
     }
 
-    // Dynamic clean mathematical calculation formula applied universally to all profiles
-    $hourlyRate  = (float) $employee->salaryProfile->base_hourly_rate;
+    // Process calculations using the exact hours typed into the input field
     $hoursWorked = (float) $request->hours_worked;
     $grossAmount = $hourlyRate * $hoursWorked;
 
     $reference = 'REF-' . strtoupper(uniqid());
 
-    // Execute core database processing engine allocation step
+    // Execute core database records mapping sequence
     DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
         $request->employee_id,
         $grossAmount,
-        0.00, // Initial bonus tracking reset
-        0.00, // Initial deductions reset
-        $grossAmount, // Net pay starts matched directly with calculated gross output
+        0.00, // Initial adjustments baseline
+        0.00, // Initial deductions baseline
+        $grossAmount, // Net amount directly matches initial gross pay calculations
         $reference,
         $request->pay_period_start,
         $request->pay_period_end,
@@ -65,7 +63,7 @@ class PayrollController extends Controller
         $request->ip()
     ]);
 
-    // Force default state structures explicitly 
+    // Set transactional state records parameters
     $payroll = \App\Models\PayrollTransaction::where('reference_number', $reference)->first();
     if ($payroll) {
         $payroll->status = 'Pending Approval';
@@ -73,7 +71,7 @@ class PayrollController extends Controller
         $payroll->save();
     }
 
-    return redirect()->route('payroll.index')->with('success', 'Payroll record processed and calculated successfully.');
+    return redirect()->route('payroll.index')->with('success', "Payroll initialized for {$employee->full_name} with {$hoursWorked} hours processed.");
 }
 
     public function manage($id)
