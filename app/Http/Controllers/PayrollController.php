@@ -11,16 +11,73 @@ use Illuminate\Support\Facades\Auth;
 class PayrollController extends Controller
 {
     public function index()
-    {
-        $transactions = PayrollTransaction::with('employee')->latest()->get();
-        return view('payroll.index', compact('transactions'));
+{
+    $user = Auth::user();
+
+    // CASE 1: Logged-in user is a Super Admin (Role 1)
+    if ($user->role_id == 1) {
+        $transactions = PayrollTransaction::with('employee.branch')->latest()->get();
+    } 
+    // CASE 2: Logged-in user is a Branch Manager
+    else {
+        // Safe fallback chain to discover the manager's active branch_id
+        $branchId = $user->branch_id;
+
+        if (!$branchId && isset($user->employee)) {
+            $branchId = $user->employee->branch_id;
+        }
+
+        if (!$branchId) {
+            $matchingEmployee = Employee::where('full_name', $user->name)
+                ->orWhere('employee_id', $user->employee_id ?? null)
+                ->first();
+            $branchId = $matchingEmployee ? $matchingEmployee->branch_id : null;
+        }
+
+        // Filter transactions to only show records belonging to staff within this branch
+        $transactions = PayrollTransaction::with('employee.branch')
+            ->whereHas('employee', function ($query) use ($branchId) {
+                $query->where('branch_id', $branchId);
+            })
+            ->latest()
+            ->get();
     }
 
-    public function create()
-    {
-        $employees = Employee::with('position')->get();
-        return view('payroll.create', compact('employees'));
+    return view('payroll.index', compact('transactions'));
+}
+
+public function create()
+{
+    $user = Auth::user();
+    
+    // Eager-load relations to optimize performance and prevent N+1 query exceptions
+    $query = Employee::with(['position', 'attendanceLogs', 'branch']);
+
+    // If user is a Branch Manager, filter down to their branch staff only
+    if ($user->role_id != 1) {
+        $branchId = $user->branch_id;
+
+        if (!$branchId && isset($user->employee)) {
+            $branchId = $user->employee->branch_id;
+        }
+
+        if (!$branchId) {
+            $matchingEmployee = Employee::where('full_name', $user->name)
+                ->orWhere('employee_id', $user->employee_id ?? null)
+                ->first();
+            $branchId = $matchingEmployee ? $matchingEmployee->branch_id : null;
+        }
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        } else {
+            return redirect()->route('payroll.index')->with('error', 'Unable to resolve your assigned branch location.');
+        }
     }
+
+    $employees = $query->get();
+    return view('payroll.create', compact('employees'));
+}
 
     /**
      * Store a newly created payroll transaction in storage.

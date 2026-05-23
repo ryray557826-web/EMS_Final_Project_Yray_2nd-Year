@@ -9,24 +9,21 @@
             <form action="{{ route('payroll.store') }}" method="POST" class="space-y-6">
                 @csrf
                 
-                {{-- Employee Selection Dropdown Component Workspace --}}
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Select Employee</label>
-                    <select name="employee_id" id="employee_select" onchange="updateLogReference()" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-lg p-3 text-sm focus:border-[#ff2d75] outline-none text-white transition-colors">
-                        <option value="" disabled selected>-- Select an Employee --</option>
-                        @foreach($employees as $emp)
-                            {{-- Double Guard Check: Controller filters this, but view confirms structural consistency --}}
-                            @if(Auth::user()->role_id == 1 || $emp->branch_id == Auth::user()->branch_id)
-                                <option value="{{ $emp->employee_id }}" data-hours="{{ $emp->attendanceLogs->sum('hours') ?? 0 }}">
-                                    {{ $emp->full_name }} 
-                                    @if(Auth::user()->role_id == 1 && $emp->branch)
-                                        [{{ $emp->branch->name ?? 'Branch #'.$emp->branch_id }}]
-                                    @endif
-                                </option>
-                            @endif
-                        @endforeach
-                    </select>
-                </div>
+              {{-- Employee Selection Dropdown Component Workspace --}}
+<div>
+    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Select Employee</label>
+    <select name="employee_id" id="employee_select" onchange="updateLogReference()" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-lg p-3 text-sm focus:border-[#ff2d75] outline-none text-white transition-colors">
+        <option value="" disabled selected>-- Select an Employee --</option>
+        @foreach($employees as $emp)
+            <option value="{{ $emp->employee_id }}" data-hours="{{ $emp->attendanceLogs ? $emp->attendanceLogs->sum('hours') : 0 }}">
+                {{ $emp->full_name }} 
+                @if(Auth::user()->role_id == 1 && $emp->branch)
+                    [{{ $emp->branch->name ?? 'Branch #'.$emp->branch_id }}]
+                @endif
+            </option>
+        @endforeach
+    </select>
+</div>
 
                 {{-- Hours Input & Log Reference Section --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#0a0a0a] p-4 rounded-xl border border-[#262626]">
