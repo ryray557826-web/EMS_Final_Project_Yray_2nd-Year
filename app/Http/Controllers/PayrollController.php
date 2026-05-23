@@ -37,6 +37,7 @@ class PayrollController extends Controller
 
         $reference = 'REF-' . strtoupper(uniqid());
 
+        // 1. Run structural procedure
         DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
             $request->employee_id,
             $grossAmount,
@@ -49,6 +50,14 @@ class PayrollController extends Controller
             Auth::id(),
             $request->ip()
         ]);
+
+        // FIX: Intercept the record right after creation to keep it unlocked and open for edits
+        $newPayroll = PayrollTransaction::where('reference_number', $reference)->first();
+        if ($newPayroll) {
+            $newPayroll->status = 'Pending Approval'; // Keeps it in an editable staging state
+            $newPayroll->is_locked = false;          // Ensures UI does not lock it out
+            $newPayroll->save();
+        }
 
         return redirect()->route('payroll.index')->with('success', 'Payroll structural calculation initialized successfully.');
     }
@@ -103,10 +112,9 @@ class PayrollController extends Controller
         // 2. Handle Definitive Lock Closures (Commit Action)
         if ($action === 'commit') {
             DB::transaction(function () use ($payroll) {
-                // FIXED: Changed back to 'Processed' to fit database strict ENUM constraints
                 $payroll->final_gross_pay = $payroll->gross_amount;
                 $payroll->status          = 'Processed'; 
-                $payroll->is_locked       = true;        
+                $payroll->is_locked       = true; // This will trigger the definitive locked status now
                 $payroll->save();
 
                 DB::table('salary_profiles')
