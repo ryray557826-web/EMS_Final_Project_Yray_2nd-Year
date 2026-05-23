@@ -86,28 +86,46 @@
                     </div>
                 @else
                     <div class="space-y-4">
-                        <div class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 p-4 rounded-xl text-center text-[10px] font-black uppercase tracking-widest">
-                            ⚠️ Warning: Committing will permanently lock this record and transfer the gross amount to the personnel allowance profile.
-                        </div>
+                        @if(auth()->user()->role_id != 1)
+                            <div class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-center text-[10px] font-black uppercase tracking-widest">
+                                🔒 Access Restricted: Final approval actions are reserved exclusively for System Super Administrators.
+                            </div>
+                        @else
+                            <div class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 p-4 rounded-xl text-center text-[10px] font-black uppercase tracking-widest">
+                                ⚠️ Warning: Committing will permanently lock this record and transfer the gross amount to the personnel allowance profile.
+                            </div>
+                        @endif
                         
                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                             {{-- Commit Action --}}
-                            <form action="{{ route('payroll.update', $payroll->transaction_id) }}" method="POST" onsubmit="return confirm('Commit ledger? This will lock the record and update employee allowances.');">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="admin_action" value="commit">
-                                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl transition-all shadow-md">
-                                    Commit Final
+                            @if(auth()->user()->role_id == 1)
+                                <form action="{{ route('payroll.update', $payroll->transaction_id) }}" method="POST" onsubmit="return confirm('Commit ledger? This will lock the record and update employee allowances.');">
+                                    @csrf @method('PATCH')
+                                    <input type="hidden" name="admin_action" value="commit">
+                                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl transition-all shadow-md">
+                                        Commit Final
+                                    </button>
+                                </form>
+                            @else
+                                <button type="button" disabled class="w-full bg-green-950/20 text-green-700/40 border border-green-950/30 font-black uppercase text-[10px] tracking-widest py-3 rounded-xl cursor-not-allowed opacity-60">
+                                    Commit Locked
                                 </button>
-                            </form>
+                            @endif
 
                             {{-- Reject Action --}}
-                            <form action="{{ route('payroll.update', $payroll->transaction_id) }}" method="POST" onsubmit="return confirm('Reject this payroll transaction request?');">
-                                @csrf @method('PATCH')
-                                <input type="hidden" name="admin_action" value="reject">
-                                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl transition-all shadow-md">
-                                    Reject
+                            @if(auth()->user()->role_id == 1)
+                                <form action="{{ route('payroll.update', $payroll->transaction_id) }}" method="POST" onsubmit="return confirm('Reject this payroll transaction request?');">
+                                    @csrf @method('PATCH')
+                                    <input type="hidden" name="admin_action" value="reject">
+                                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl transition-all shadow-md">
+                                        Reject
+                                    </button>
+                                </form>
+                            @else
+                                <button type="button" disabled class="w-full bg-red-950/20 text-red-700/40 border border-red-950/30 font-black uppercase text-[10px] tracking-widest py-3 rounded-xl cursor-not-allowed opacity-60">
+                                    Reject Locked
                                 </button>
-                            </form>
+                            @endif
 
                             {{-- Rollback Action --}}
                             <form action="{{ route('payroll.update', $payroll->transaction_id) }}" method="POST" onsubmit="return confirm('Execute system rollback on this tracking row?');">
