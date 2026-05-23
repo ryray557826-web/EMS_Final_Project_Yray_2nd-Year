@@ -10,7 +10,14 @@
                 </div>
                 <div class="text-right">
                     <span class="text-[9px] text-gray-500 block uppercase tracking-widest">Workflow State</span>
-                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 inline-block mt-1">
+                    @php
+                        $normalizedStatus = strtolower($payroll->status);
+                        $statusClass = $normalizedStatus === 'pending approval' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 
+                                      (($normalizedStatus === 'processed' && $payroll->is_locked) || $normalizedStatus === 'completed' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
+                                      ($normalizedStatus === 'processed' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
+                                      ($normalizedStatus === 'rolled back' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20')));
+                    @endphp
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border inline-block mt-1 {{ $statusClass }}">
                         {{ $payroll->status }}
                     </span>
                 </div>
@@ -57,7 +64,9 @@
 
                 {{-- Reason / Context Segment --}}
                 <div class="pt-4 border-t border-[#1c1c1c]">
-                    <span class="text-[9px] text-gray-500 uppercase tracking-widest block mb-1">Modification Request Notes Context</span>
+                    <span class="text-[9px] text-gray-500 uppercase tracking-widest block mb-1">
+                        {{ $payroll->status === 'Pending Approval' ? 'Modification Request Notes Context' : 'Ledger System Notes Context' }}
+                    </span>
                     <p class="text-xs text-gray-300 italic bg-[#161616] p-3 rounded-lg border border-[#262626]">
                         {{ $payroll->notes ?? 'No explicit historical adjustments noted for this ledger block.' }}
                     </p>
@@ -122,7 +131,7 @@
             {{-- Return Navigation Context Footer --}}
             <div class="flex justify-start pt-2">
                 <a href="{{ route('payroll.index') }}" class="text-xs text-gray-500 hover:text-white uppercase tracking-widest transition-colors">
-                    ← Return to Payroll Ledgers
+                    &larr; Return to Payroll Ledgers
                 </a>
             </div>
 

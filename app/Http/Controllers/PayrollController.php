@@ -37,7 +37,6 @@ class PayrollController extends Controller
 
         $reference = 'REF-' . strtoupper(uniqid());
 
-        // 1. Run structural procedure
         DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
             $request->employee_id,
             $grossAmount,
@@ -51,11 +50,12 @@ class PayrollController extends Controller
             $request->ip()
         ]);
 
-        // FIX: Intercept the record right after creation to keep it unlocked and open for edits
+        // FIX: Route state intelligently depending on who initialized the creation
         $newPayroll = PayrollTransaction::where('reference_number', $reference)->first();
         if ($newPayroll) {
-            $newPayroll->status = 'Pending Approval'; // Keeps it in an editable staging state
-            $newPayroll->is_locked = false;          // Ensures UI does not lock it out
+            // Branch Admins generate standard approval requests. Super Admins bypass staging directly to Processed.
+            $newPayroll->status = (Auth::user()->role_id == 2) ? 'Pending Approval' : 'Processed';
+            $newPayroll->is_locked = false; // Keeps it editable for modifications until committed/locked
             $newPayroll->save();
         }
 
@@ -114,7 +114,7 @@ class PayrollController extends Controller
             DB::transaction(function () use ($payroll) {
                 $payroll->final_gross_pay = $payroll->gross_amount;
                 $payroll->status          = 'Processed'; 
-                $payroll->is_locked       = true; // This will trigger the definitive locked status now
+                $payroll->is_locked       = true;        
                 $payroll->save();
 
                 DB::table('salary_profiles')
