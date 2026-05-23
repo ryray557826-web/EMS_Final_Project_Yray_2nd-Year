@@ -42,7 +42,7 @@
                                         {{ $emp->full_name ?? $emp->name }}
                                     </td>
                                     
-                                    {{-- Deployed Branch Assignment (New Column) --}}
+                                    {{-- Deployed Branch Assignment --}}
                                     <td class="py-4 px-2 text-zinc-400 font-medium uppercase tracking-wider text-[11px]">
                                         {{ $emp->branch->branch_name ?? 'Global / Unassigned' }}
                                     </td>
@@ -52,9 +52,16 @@
                                         {{ $emp->position->position_title ?? 'Unassigned Tier' }}
                                     </td>
 
-                                    {{-- Base Hourly Rate (Pure Text Output) --}}
+                                    {{-- Base Hourly Rate (Pulls from profile with dynamic fallback to position rate) --}}
                                     <td class="py-4 px-2 font-mono text-green-400 font-bold">
-                                        ₱{{ number_format($emp->salaryProfile->base_hourly_rate ?? 0.00, 2) }}
+                                        @php
+                                            $hourlyRateValue = $emp->salaryProfile->base_hourly_rate ?? 0.00;
+                                            // Fallback check: If profile table field is 0, reference parent position schema
+                                            if ($hourlyRateValue == 0.00 && isset($emp->position->hourly_rate)) {
+                                                $hourlyRateValue = $emp->position->hourly_rate;
+                                            }
+                                        @endphp
+                                        ₱{{ number_format($hourlyRateValue, 2) }}
                                     </td>
 
                                     {{-- Dynamic Live Accumulative Total Allowance Column --}}
