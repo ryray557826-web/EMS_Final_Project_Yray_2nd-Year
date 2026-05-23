@@ -14,25 +14,58 @@ class KpiScorecardController extends Controller
      * Display a comprehensive listing of performance metrics and dropdown personnel.
      */
     public function index()
-    {
-        $manager = Auth::user();
+{
+    $user = Auth::user();
 
-        // 1. Fetch staff members belonging to this manager's branch_id (excluding the manager)
-        $employees = Employee::where('branch_id', $manager->branch_id)
-            ->where('employee_id', '!=', $manager->employee_id) 
+    // CASE 1: Logged-in user is a Super Admin (Role 1)
+    if ($user->role_id == 1) {
+        // Super Admins see ALL personnel and ALL historical records across the system
+        $employees = Employee::all(); 
+        $scorecards = KpiScorecard::with(['employee.branch'])->latest()->get();
+    } 
+    // CASE 2: Logged-in user is a Branch Manager or other staff
+    else {
+        // Safe fallback chain to discover the manager's branch_id
+        $branchId = $user->branch_id;
+
+        // If not directly on User, check if there's an associated employee relation
+        if (!$branchId && isset($user->employee)) {
+            $branchId = $user->employee->branch_id;
+        }
+
+        // If still not found, search the employees table by matching name/user metrics
+        if (!$branchId) {
+            $matchingEmployee = Employee::where('full_name', $user->name)
+                ->orWhere('employee_id', $user->employee_id ?? null)
+                ->first();
+            $branchId = $matchingEmployee ? $matchingEmployee->branch_id : null;
+        }
+
+        // If the branch cannot be resolved, return empty collections gracefully
+        if (!$branchId) {
+            return view('kpi.index', [
+                'employees' => collect(),
+                'scorecards' => collect()
+            ])->with('error', 'Unable to resolve your assigned branch branch.');
+        }
+
+        // Fetch staff members belonging to this resolved branch (excluding the manager)
+        $employees = Employee::where('branch_id', $branchId)
+            ->where('full_name', '!=', $user->name) 
             ->get();
 
-        // 2. Fetch historical scorecards specifically for this branch_id
-        $scorecards = KpiScorecard::with('employee')
-            ->whereHas('employee', function ($query) use ($manager) {
-                $query->where('branch_id', $manager->branch_id);
+        // Fetch historical scorecards belonging strictly to this branch
+        $scorecards = KpiScorecard::with(['employee.branch'])
+            ->whereHas('employee', function ($query) use ($branchId) {
+                $query->where('branch_id', $branchId);
             })
             ->latest()
             ->get();
-
-        // Pass BOTH variables back to your single dashboard view
-        return view('kpi.index', compact('scorecards', 'employees'));
     }
+
+    // Pass the precisely filtered variables directly to the view
+    return view('kpi.index', compact('scorecards', 'employees'));
+}
 
     /**
      * Create a performance record and register a creation audit log.

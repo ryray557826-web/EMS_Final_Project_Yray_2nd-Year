@@ -17,7 +17,6 @@
                         @csrf
                         <div class="flex flex-col gap-2">
                             <label class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Target Staff</label>
-                            {{-- Styled dropdown to perfectly match the dark theme inputs --}}
                             <select name="employee_id" id="target_staff" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl p-4 text-sm text-white focus:border-[#ff2d75] outline-none transition appearance-none cursor-pointer" required>
                                 <option value="" class="text-gray-500">Select personnel...</option>
                                 @foreach($employees as $staff)
@@ -58,32 +57,35 @@
                                 </tr>
                             </thead>
                             <tbody class="text-xs">
-                                @foreach($scorecards as $kpi)
-                                    {{-- Multi-Branch Filtering Assert Logic Check --}}
-                                    @if(Auth::user()->role_id == 1 || (isset($kpi->employee) && $kpi->employee->branch_id == Auth::user()->branch_id))
-                                        <tr class="border-t border-[#262626]">
-                                            <td class="py-4 px-2 font-bold">{{ $kpi->employee->full_name ?? 'System User' }}</td>
-                                            @if(Auth::user()->role_id == 1)
-                                                <td class="py-4 px-2 text-blue-400 font-mono text-[10px]">
-                                                    {{ $kpi->employee->branch->name ?? 'Branch #'.$kpi->employee->branch_id }}
-                                                </td>
-                                            @endif
-                                            <td class="py-4 px-2 font-mono text-[#ff2d75] font-black">{{ number_format($kpi->evaluation_score, 0) }}%</td>
-                                            <td class="py-4 px-2 text-gray-400">{{ $kpi->remarks ?? 'N/A' }}</td>
-                                            <td class="py-4 px-2">
-                                                <div class="flex justify-center gap-2">
-                                                    <a href="{{ route('kpi.edit', $kpi->kpi_id) }}" class="bg-[#262626] hover:bg-[#363636] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition">Edit</a>
-                                                    <form action="{{ route('kpi.destroy', $kpi->kpi_id) }}" method="POST" onsubmit="return confirm('Remove entry?');">
-                                                        @csrf @method('DELETE')
-                                                        <button type="submit" class="bg-[#262626] text-red-500 hover:bg-red-600 hover:text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition">
-                                                            Remove
-                                                        </button>
-                                                    </form>
-                                                </div>
+                                @forelse($scorecards as $kpi)
+                                    <tr class="border-t border-[#262626]">
+                                        <td class="py-4 px-2 font-bold">{{ $kpi->employee->full_name ?? 'System User' }}</td>
+                                        @if(Auth::user()->role_id == 1)
+                                            <td class="py-4 px-2 text-blue-400 font-mono text-[10px]">
+                                                {{ $kpi->employee->branch->name ?? 'Branch #'.$kpi->employee->branch_id }}
                                             </td>
-                                        </tr>
-                                    @endif
-                                @endforeach
+                                        @endif
+                                        <td class="py-4 px-2 font-mono text-[#ff2d75] font-black">{{ number_format($kpi->evaluation_score, 0) }}%</td>
+                                        <td class="py-4 px-2 text-gray-400">{{ $kpi->remarks ?? 'N/A' }}</td>
+                                        <td class="py-4 px-2">
+                                            <div class="flex justify-center gap-2">
+                                                <a href="{{ route('kpi.edit', $kpi->kpi_id) }}" class="bg-[#262626] hover:bg-[#363636] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition">Edit</a>
+                                                <form action="{{ route('kpi.destroy', $kpi->kpi_id) }}" method="POST" onsubmit="return confirm('Remove entry?');">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="bg-[#262626] text-red-500 hover:bg-red-600 hover:text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition">
+                                                        Remove
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="py-8 text-center text-gray-500 uppercase tracking-widest text-[10px]">
+                                            No evaluation records mapped onto this system layout view yet.
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
