@@ -22,6 +22,13 @@
                             <input type="email" name="email" value="{{ old('email', $employee->user->email) }}" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
                         </div>
                         <div>
+                            <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Update Password</label>
+                            <input type="password" name="password" placeholder="Leave blank to keep current" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
                             <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Position</label>
                             <select name="position_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
                                 @foreach($positions as $position)
@@ -31,17 +38,16 @@
                                 @endforeach
                             </select>
                         </div>
-                    </div>
-
-                    <div>
-                        <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Branch</label>
-                        <select name="branch_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
-                            @foreach($branches as $branch)
-                                <option value="{{ $branch->branch_id }}" {{ $employee->branch_id == $branch->branch_id ? 'selected' : '' }}>
-                                    {{ $branch->branch_name }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <div>
+                            <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Branch</label>
+                            <select name="branch_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->branch_id }}" {{ $employee->branch_id == $branch->branch_id ? 'selected' : '' }}>
+                                        {{ $branch->branch_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
 

@@ -103,7 +103,7 @@ class EmployeeController extends Controller
     /**
      * Update the Employee and User records.
      */
-    public function update(Request $request, $id)
+public function update(Request $request, $id)
     {
         $employee = Employee::findOrFail($id);
         
@@ -112,39 +112,43 @@ class EmployeeController extends Controller
             'email'       => 'required|email|unique:users,email,' . $employee->user_id . ',user_id',
             'position_id' => 'required|exists:positions,position_id',
             'branch_id'   => 'required|exists:branches,branch_id',
+            'password'    => 'nullable|string|min:6', // Added: allows password to be optional
         ]);
 
         $position = Position::findOrFail($request->position_id);
 
         return DB::transaction(function () use ($request, $employee, $position) {
-            $employee->user->update([
+            // Prepare user data
+            $userData = [
                 'name'    => $request->name,
                 'email'   => $request->email,
                 'role_id' => $position->role_id,
-            ]);
+            ];
+
+            // Only update password if user actually typed something in the field
+            if ($request->filled('password')) {
+                $userData['password'] = Hash::make($request->password);
+            }
+
+            $employee->user->update($userData);
 
             $employee->update([
                 'position_id' => $request->position_id,
                 'branch_id'   => $request->branch_id,
-                'full_name'   => $request->name, // Keeping name synced
+                'full_name'   => $request->name,
             ]);
 
             AuditTrail::create([
                 'user_id'     => Auth::id(),
-                'action'      => 'UPDATE',
-                'module'      => 'Employees',
-                'description' => "Updated details for: {$request->name}. Position sync: {$position->position_title}",
+                'action'      => 'UPDATE_PERSONNEL',
+                'module'      => 'Staff Directory',
+                'description' => "Updated profile for: {$request->name}. Position: {$position->position_title}",
                 'ip_address'  => $request->ip(),
             ]);
 
-            return redirect()->route('employees.index')->with('success', 'Staff record updated and synchronized.');
+            return redirect()->route('employees.index')->with('success', 'Staff record updated successfully.');
         });
-    }
-
-    /**
-     * Remove the specified employee from storage.
-     */
-    public function destroy($id)
+    }    public function destroy($id)
 {
     $employee = Employee::findOrFail($id);
     $user = $employee->user; 
