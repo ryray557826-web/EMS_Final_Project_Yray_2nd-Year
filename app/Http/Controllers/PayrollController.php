@@ -26,51 +26,55 @@ class PayrollController extends Controller
      * Store a newly created payroll transaction in storage.
      */
     public function store(Request $request)
-    {
-        $request->validate([
-            'employee_id' => 'required|exists:employees,employee_id',
-            'hours_worked' => 'required|numeric|min:0',
-            'pay_period_start' => 'required|date',
-            'pay_period_end' => 'required|date|after:pay_period_start',
-        ]);
+{
+    $request->validate([
+        'employee_id'      => 'required|exists:employees,employee_id',
+        'hours_worked'     => 'required|numeric|min:0',
+        'pay_period_start' => 'required|date',
+        'pay_period_end'   => 'required|date|after:pay_period_start',
+    ]);
 
-        $employee = Employee::with('salaryProfile')->findOrFail($request->employee_id);
-        $hourlyRate = $employee->salaryProfile->base_hourly_rate ?? 0;
-        $grossAmount = $hourlyRate * $request->hours_worked;
-
-        $reference = 'REF-' . strtoupper(uniqid());
-
-        // Run your core database system procedure
-        DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
-            $request->employee_id,
-            $grossAmount,
-            0.00,
-            0.00,
-            $grossAmount, // Sets initial net_amount equal to gross_amount
-            $reference,
-            $request->pay_period_start,
-            $request->pay_period_end,
-            Auth::id(),
-            $request->ip()
-        ]);
-
-        $newPayroll = PayrollTransaction::where('reference_number', $reference)->first();
-        
-        if ($newPayroll) {
-            // Super Admin bypasses standard request workflows but remains unlocked for manual modifications
-            if (Auth::user()->role_id == 1) {
-                $newPayroll->status = 'Processed';
-            } else {
-                $newPayroll->status = 'Pending Approval';
-            }
-            
-            $newPayroll->is_locked = false;
-            $newPayroll->final_gross_pay = null; // Stays "Unfinalized" on the dashboard desk view
-            $newPayroll->save();
-        }
-
-        return redirect()->route('payroll.index')->with('success', 'Payroll structural calculation initialized successfully.');
+    // Pull employee along with their salary profile definition
+    $employee = Employee::with('salaryProfile')->findOrFail($request->employee_id);
+    
+    // Fail-safe check: Ensure a rate actually exists so it doesn't silently resolve to ₱0.00
+    if (!$employee->salaryProfile || !$employee->salaryProfile->base_hourly_rate) {
+        return back()->withErrors([
+            'employee_id' => "The profile for {$employee->full_name} does not have a configured Base Hourly Rate in the database."
+        ])->withInput();
     }
+
+    // Dynamic clean mathematical calculation formula applied universally to all profiles
+    $hourlyRate  = (float) $employee->salaryProfile->base_hourly_rate;
+    $hoursWorked = (float) $request->hours_worked;
+    $grossAmount = $hourlyRate * $hoursWorked;
+
+    $reference = 'REF-' . strtoupper(uniqid());
+
+    // Execute core database processing engine allocation step
+    DB::select("CALL ProcessPayrollWithTransaction(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+        $request->employee_id,
+        $grossAmount,
+        0.00, // Initial bonus tracking reset
+        0.00, // Initial deductions reset
+        $grossAmount, // Net pay starts matched directly with calculated gross output
+        $reference,
+        $request->pay_period_start,
+        $request->pay_period_end,
+        Auth::id(),
+        $request->ip()
+    ]);
+
+    // Force default state structures explicitly 
+    $payroll = \App\Models\PayrollTransaction::where('reference_number', $reference)->first();
+    if ($payroll) {
+        $payroll->status = 'Pending Approval';
+        $payroll->is_locked = false;
+        $payroll->save();
+    }
+
+    return redirect()->route('payroll.index')->with('success', 'Payroll record processed and calculated successfully.');
+}
 
     public function manage($id)
     {
