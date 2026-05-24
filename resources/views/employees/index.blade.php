@@ -9,6 +9,12 @@
                 </div>
             @endif
 
+            @if(session('error'))
+                <div class="mb-6 p-4 bg-red-500/10 border border-red-500 text-red-500 rounded-xl text-xs font-bold uppercase tracking-widest">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="flex justify-between items-end mb-8">
                 <div>
                     <h2 class="text-2xl font-bold uppercase tracking-tighter">
@@ -25,7 +31,7 @@
 
             <div class="emp-container overflow-hidden rounded-xl border border-[#333]">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-[#222] text-gray-400 uppercase text-[10px] tracking-widest">
+                    <head class="bg-[#222] text-gray-400 uppercase text-[10px] tracking-widest">
                         <tr>
                             <th class="py-4 px-6">ID</th>
                             <th class="py-4 px-6">Name</th>
@@ -34,7 +40,7 @@
                             <th class="py-4 px-6">Email Verification</th>
                             <th class="py-4 px-6 text-right">Actions</th>
                         </tr>
-                    </thead>
+                    </head>
                     <tbody class="divide-y divide-[#333]">
                         @forelse($employees as $employee)
                             <tr class="hover:bg-[#1a1a1a] transition">

@@ -175,16 +175,20 @@ class EmployeeController extends Controller
             return redirect()->route('employees.index')->with('success', 'Staff record removed.');
         });
     }
-    public function verifyEmail($id)
+public function verifyEmail($id)
 {
     $employee = Employee::findOrFail($id);
     
-    if ($employee->user) {
-        $employee->user->update([
-            'email_verified_at' => now()
-        ]);
+    // Safety check: Ensure there is actually an authentication user record linked
+    if (!$employee->user) {
+        return redirect()->back()->with('error', "Verification failed: No system user account is linked to {$employee->full_name}.");
     }
+
+    // FIX: Direct assignment bypasses the $fillable mass-assignment restrictions
+    $employee->user->email_verified_at = now();
+    $employee->user->save();
 
     return redirect()->back()->with('success', "Personnel network profile entry [{$employee->full_name}] authorized successfully.");
 }
+
 }
