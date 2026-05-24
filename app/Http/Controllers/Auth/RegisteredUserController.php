@@ -31,20 +31,18 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
 {
-    // 1. Validate the incoming input fields from your clean registration view
     $request->validate([
         'name'     => ['required', 'string', 'max:255'],
         'email'    => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
         'password' => ['required', 'confirmed', Rules\Password::defaults()],
     ]);
 
-    // 2. Wrap operations inside a database transaction to prevent partial/broken records
     return DB::transaction(function () use ($request) {
         
         $isFirstUser = User::count() === 0;
-        $roleId = $isFirstUser ? 1 : 2; // Role 1: Admin | Role 2: Employee
+        $roleId = $isFirstUser ? 1 : 2; // 1 = Admin, 2 = Employee
 
-        // 3. FIX: Add 'name' here so the 1364 General Error disappears completely
+        // 1. Create the base User record
         $user = User::create([
             'name'     => $request->name,
             'email'    => $request->email,
@@ -52,26 +50,34 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // 4. Locate the baseline "Trainee" position configuration record
-        $traineePosition = Position::where('position_title', 'Trainee')
-            ->orWhere('position_title', 'like', '%trainee%')
-            ->first();
+        // 2. Query for the Trainee record space
+        $traineePosition = Position::where('position_title', 'Trainee')->first();
 
-        // 5. AUTOMATION: Create the linked Employee Profile record right away
-        // This instantly populates your empty Scorecard and Payroll dropdown selectors!
+        // 3. DEFENSIVE GENERATION: Build the Trainee row with all required columns if missing
+        if (!$traineePosition) {
+            $traineePosition = Position::create([
+                'position_title' => 'Trainee',
+                'job_level'      => 'Entry Level',
+                'hourly_rate'    => 0.00,
+                'is_active'      => 1,
+                'role_id'        => 2, // Assigns default employee structural role context
+            ]);
+        }
+
+        // 4. Attach the Employee Profile row safely
         Employee::create([
-            'user_id'     => $user->user_id, // Uses your custom 3NF Primary Key
+            'user_id'     => $user->user_id, 
             'full_name'   => $user->name,
-            'position_id' => $traineePosition ? $traineePosition->position_id : null,
-            'branch_id'   => null, // Left unassigned until modified by a manager
+            'position_id' => $traineePosition->position_id, 
+            'branch_id'   => null, 
         ]);
 
-        // 6. Push system telemetry footprints directly into your Security Audit Trail
+        // 5. System Footprint Logging
         AuditTrail::create([
             'user_id'     => $user->user_id,
             'action'      => 'USER_SELF_REGISTER',
             'module'      => 'Authentication Module',
-            'description' => "System terminal initialized for: {$user->email}. Linked profile established with auto-assigned Trainee baseline.",
+            'description' => "Account initialized for: {$user->email}. Automatically mapped to structural Trainee position profile.",
             'ip_address'  => $request->ip(),
         ]);
 
