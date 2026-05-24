@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="py-12 bg-[#0a0a0a] min-h-screen flex items-center justify-center text-white">
+    <div class="py-12 bg-[#0a0a0a] min-h-screen text-white flex items-center justify-center">
         <div class="w-full max-w-2xl bg-[#161616] border border-[#262626] p-10 rounded-3xl shadow-2xl">
             
             <div class="text-center mb-10">
@@ -7,25 +7,38 @@
                 <p class="text-gray-500 text-[10px] mt-1 uppercase tracking-widest">Add new personnel to the system</p>
             </div>
 
+            {{-- Validation Error Alerts Summary Block --}}
+            @if ($errors->any())
+                <div class="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs uppercase font-black tracking-wider">
+                    <ul class="list-disc pl-4 space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form action="{{ route('employees.store') }}" method="POST">
                 @csrf
                 <div class="space-y-6">
                     <div>
                         <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Full Name</label>
-                        <input type="text" name="full_name" placeholder="e.g. Juan Dela Cruz" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
+                        <input type="text" name="full_name" value="{{ old('full_name') }}" placeholder="e.g. Juan Dela Cruz" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">System Email</label>
-                            <input type="email" name="email" placeholder="username@splacebpo.com" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
+                            <input type="email" name="email" value="{{ old('email') }}" placeholder="username@splacebpo.com" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
                         </div>
                         <div>
                             <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Position</label>
                             <select name="position_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
-                                <option value="" disabled selected>Select Position</option>
+                                <option value="" disabled {{ old('position_id') ? '' : 'selected' }}>Select Position</option>
                                 @foreach($positions as $position)
-                                    <option value="{{ $position->position_id }}">{{ $position->position_title }} ({{ $position->job_level }})</option>
+                                    <option value="{{ $position->position_id }}" {{ old('position_id') == $position->position_id ? 'selected' : '' }}>
+                                        {{ $position->position_title }} ({{ $position->job_level }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -35,9 +48,11 @@
                         <div>
                             <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Branch</label>
                             <select name="branch_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
-                                <option value="" disabled selected>Select Branch</option>
+                                <option value="" disabled {{ old('branch_id') ? '' : 'selected' }}>Select Branch</option>
                                 @foreach($branches as $branch)
-                                    <option value="{{ $branch->branch_id }}">{{ $branch->branch_name }}</option>
+                                    <option value="{{ $branch->branch_id }}" {{ old('branch_id') == $branch->branch_id ? 'selected' : '' }}>
+                                        {{ $branch->branch_name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>

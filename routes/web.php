@@ -54,14 +54,15 @@ Route::post('/profile/cashout', [App\Http\Controllers\ProfileController::class, 
     // --- Management & Setup ---
     // Resource routes for full CRUD (index, create, store, edit, update, destroy)
     Route::resource('branches', BranchController::class);
+    Route::post('/branches/{id}/toggle', [BranchController::class, 'toggle'])->name('branches.toggle');
     Route::resource('positions', PositionController::class);
     Route::post('/positions/{id}/toggle', [PositionController::class, 'toggle'])->name('positions.toggle');
     // --- System Security ---
     Route::get('/audit-trails', [AuditTrailController::class, 'index'])->name('audit.index');
     Route::get('/payroll/{id}/manage', [PayrollController::class, 'manage'])->name('payroll.manage');
-Route::patch('/payroll/{id}/update', [PayrollController::class, 'update'])->name('payroll.update');
+    Route::patch('/payroll/{id}/update', [PayrollController::class, 'update'])->name('payroll.update');
 
-Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
+    Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
     Route::get('/payroll/create', [PayrollController::class, 'create'])->name('payroll.create');
     Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
     Route::get('/salary-profiles', [SalaryProfileController::class, 'index'])->name('salary-profiles.index');

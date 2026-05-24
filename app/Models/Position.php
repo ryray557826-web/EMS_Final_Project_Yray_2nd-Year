@@ -17,6 +17,7 @@ class Position extends Model
         'job_level',
         'hourly_rate',
         'role_id',
+        'is_active',
     ];
 
     public function employees() {

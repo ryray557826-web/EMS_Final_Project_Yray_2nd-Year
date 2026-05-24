@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
@@ -20,7 +21,6 @@ class EmployeeController extends Controller
     public function index() 
     {
         $user = Auth::user();
-        // FIXED: Eager loading included to allow access to $employee->position->position_title
         $query = Employee::with(['user', 'position', 'branch']);
 
         if ($user->role_id == 1) {
@@ -38,8 +38,9 @@ class EmployeeController extends Controller
      */
     public function create()
     {
-        $positions = Position::all(); 
-        $branches = Branch::all();
+        // Enforce state engine compliance rules: structural components must be active
+        $positions = Position::where('is_active', true)->get(); 
+        $branches = Branch::where('is_active', true)->get();
         return view('employees.create', compact('positions', 'branches'));
     }
 
@@ -52,8 +53,9 @@ class EmployeeController extends Controller
             'full_name'   => 'required|string|max:255',
             'email'       => 'required|string|email|max:255|unique:users,email',
             'password'    => 'required|string|min:6',
-            'position_id' => 'required|exists:positions,position_id',
-            'branch_id'   => 'required|exists:branches,branch_id',
+            // Backend safeguard protecting against injected/spoofed payloads of inactive metrics
+            'position_id' => ['required', Rule::exists('positions', 'position_id')->where('is_active', true)],
+            'branch_id'   => ['required', Rule::exists('branches', 'branch_id')->where('is_active', true)],
         ]);
 
         $position = Position::findOrFail($request->position_id);
@@ -95,37 +97,42 @@ class EmployeeController extends Controller
     public function edit($id)
     {
         $employee = Employee::with('user')->findOrFail($id);
-        $positions = Position::all();
-        $branches = Branch::all();
+        
+        // Show all active records, but merge the employee's current selection so historical assignments don't break
+        $positions = Position::where('is_active', true)->orWhere('position_id', $employee->position_id)->get();
+        $branches = Branch::where('is_active', true)->orWhere('branch_id', $employee->branch_id)->get();
+        
         return view('employees.edit', compact('employee', 'positions', 'branches'));
     }
 
     /**
      * Update the Employee and User records.
      */
-public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $employee = Employee::findOrFail($id);
         
         $request->validate([
             'name'        => 'required|string|max:255',
             'email'       => 'required|email|unique:users,email,' . $employee->user_id . ',user_id',
-            'position_id' => 'required|exists:positions,position_id',
-            'branch_id'   => 'required|exists:branches,branch_id',
-            'password'    => 'nullable|string|min:6', // Added: allows password to be optional
+            'password'    => 'nullable|string|min:6',
+            'position_id' => ['required', Rule::exists('positions', 'position_id')->where(function($q) use ($employee) {
+                $q->where('is_active', true)->orWhere('position_id', $employee->position_id);
+            })],
+            'branch_id'   => ['required', Rule::exists('branches', 'branch_id')->where(function($q) use ($employee) {
+                $q->where('is_active', true)->orWhere('branch_id', $employee->branch_id);
+            })],
         ]);
 
         $position = Position::findOrFail($request->position_id);
 
         return DB::transaction(function () use ($request, $employee, $position) {
-            // Prepare user data
             $userData = [
                 'name'    => $request->name,
                 'email'   => $request->email,
                 'role_id' => $position->role_id,
             ];
 
-            // Only update password if user actually typed something in the field
             if ($request->filled('password')) {
                 $userData['password'] = Hash::make($request->password);
             }
@@ -148,24 +155,24 @@ public function update(Request $request, $id)
 
             return redirect()->route('employees.index')->with('success', 'Staff record updated successfully.');
         });
-    }    public function destroy($id)
-{
-    $employee = Employee::findOrFail($id);
-    $user = $employee->user; 
-    $name = $user->name;
+    }
 
-    return DB::transaction(function () use ($employee, $user, $name) {
-        // 1. Manually delete the related audit trails first
-        \App\Models\AuditTrail::where('user_id', $user->user_id)->delete();
+    /**
+     * Remove the specified employee from storage.
+     */
+    public function destroy($id)
+    {
+        $employee = Employee::findOrFail($id);
+        $user = $employee->user; 
+        $name = $user->name;
 
-        // 2. Now delete the records
-        $employee->delete();
-        $user->delete(); 
+        return DB::transaction(function () use ($employee, $user, $name) {
+            \App\Models\AuditTrail::where('user_id', $user->user_id)->delete();
 
-        // 3. Optional: You can't log the deletion to AuditTrail 
-        // using the deleted user ID, so skip that specific line.
+            $employee->delete();
+            $user->delete(); 
 
-        return redirect()->route('employees.index')->with('success', 'Staff record removed.');
-    });
-}
+            return redirect()->route('employees.index')->with('success', 'Staff record removed.');
+        });
+    }
 }
