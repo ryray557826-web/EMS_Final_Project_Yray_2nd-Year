@@ -47,15 +47,6 @@
             transition: all 0.3s ease;
         }
         .btn-pink:hover { background-color: #d62562; transform: translateY(-2px); }
-        .btn-glass {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #222;
-            color: #fff;
-            padding: 12px 28px;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-        }
-        .btn-glass:hover { background: rgba(255, 255, 255, 0.1); border-color: #444; }
     </style>
 </head>
 <body>
@@ -75,10 +66,6 @@
                     <a href="{{ url('/dashboard') }}" class="btn btn-pink">Enter Dashboard</a>
                 @else
                     <a href="{{ route('login') }}" class="btn btn-pink">Login to System</a>
-
-                    @if (Route::has('register'))
-                        <a href="{{ route('register') }}" class="btn btn-glass">Request Access</a>
-                    @endif
                 @endauth
             @endif
         </div>

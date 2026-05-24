@@ -175,4 +175,16 @@ class EmployeeController extends Controller
             return redirect()->route('employees.index')->with('success', 'Staff record removed.');
         });
     }
+    public function verifyEmail($id)
+{
+    $employee = Employee::findOrFail($id);
+    
+    if ($employee->user) {
+        $employee->user->update([
+            'email_verified_at' => now()
+        ]);
+    }
+
+    return redirect()->back()->with('success', "Personnel network profile entry [{$employee->full_name}] authorized successfully.");
+}
 }

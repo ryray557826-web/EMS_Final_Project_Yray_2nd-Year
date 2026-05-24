@@ -42,15 +42,10 @@
                             {{ __('Authorize Login') }}
                         </button>
 
-                        <div class="flex justify-between items-center px-1">
+                        <div class="text-center px-1">
                             @if (Route::has('password.request'))
                                 <a class="text-[10px] text-gray-500 hover:text-white transition-colors uppercase font-bold tracking-widest" href="{{ route('password.request') }}">
                                     {{ __('Forgot password?') }}
-                                </a>
-                            @endif
-                            @if (Route::has('register'))
-                                <a class="text-[10px] text-gray-500 hover:text-white transition-colors uppercase font-bold tracking-widest" href="{{ route('register') }}">
-                                    {{ __('Create Account') }}
                                 </a>
                             @endif
                         </div>
