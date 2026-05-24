@@ -10,6 +10,7 @@ use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\KpiScorecardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SalaryProfileController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -54,7 +55,7 @@ Route::post('/profile/cashout', [App\Http\Controllers\ProfileController::class, 
     // Resource routes for full CRUD (index, create, store, edit, update, destroy)
     Route::resource('branches', BranchController::class);
     Route::resource('positions', PositionController::class);
-
+    Route::post('/positions/{id}/toggle', [PositionController::class, 'toggle'])->name('positions.toggle');
     // --- System Security ---
     Route::get('/audit-trails', [AuditTrailController::class, 'index'])->name('audit.index');
     Route::get('/payroll/{id}/manage', [PayrollController::class, 'manage'])->name('payroll.manage');

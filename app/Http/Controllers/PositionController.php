@@ -143,4 +143,34 @@ class PositionController extends Controller
             return redirect()->route('positions.index')->with('status', 'Position removed from the organizational structure.');
         });
     }
+    /**
+     * Toggle the active status of the specified position.
+     */
+    public function toggle(Request $request, $id)
+    {
+        if (Auth::user()->role_id > 2) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $position = Position::findOrFail($id);
+
+        return DB::transaction(function () use ($position, $request) {
+            // Flip the boolean status engine flag
+            $position->is_active = !$position->is_active;
+            $position->save();
+
+            $statusText = $position->is_active ? 'Activated' : 'Deactivated';
+
+            // Maintain compliance tracking sequence
+            AuditTrail::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'TOGGLE_POSITION_STATUS',
+                'module'      => 'Job Structure',
+                'description' => "Job tier status toggled for: {$position->position_title} ({$position->job_level}). Current state: {$statusText}",
+                'ip_address'  => $request->ip(),
+            ]);
+
+            return redirect()->route('positions.index')->with('status', "Position tier successfully {$statusText}.");
+        });
+    }
 }
