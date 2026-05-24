@@ -7,6 +7,17 @@
                 <p class="text-gray-500 text-[10px] mt-1 uppercase tracking-widest">Update personnel details</p>
             </div>
 
+            {{-- Validation Error Alerts Summary Block --}}
+            @if ($errors->any())
+                <div class="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs uppercase font-black tracking-wider">
+                    <ul class="list-disc pl-4 space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form action="{{ route('employees.update', $employee->employee_id) }}" method="POST">
                 @csrf
                 @method('PUT')
@@ -32,8 +43,9 @@
                             <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Position</label>
                             <select name="position_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
                                 @foreach($positions as $position)
-                                    <option value="{{ $position->position_id }}" {{ $employee->position_id == $position->position_id ? 'selected' : '' }}>
+                                    <option value="{{ $position->position_id }}" {{ old('position_id', $employee->position_id) == $position->position_id ? 'selected' : '' }}>
                                         {{ $position->position_title }} ({{ $position->job_level }})
+                                        {{ !$position->is_active ? ' — [INACTIVE]' : '' }}
                                     </option>
                                 @endforeach
                             </select>
@@ -42,8 +54,9 @@
                             <label class="text-gray-500 text-[9px] font-black tracking-widest uppercase">Branch</label>
                             <select name="branch_id" class="w-full bg-[#0a0a0a] border border-[#262626] rounded-xl mt-1 p-4 text-sm focus:border-[#ff2d75] outline-none transition" required>
                                 @foreach($branches as $branch)
-                                    <option value="{{ $branch->branch_id }}" {{ $employee->branch_id == $branch->branch_id ? 'selected' : '' }}>
+                                    <option value="{{ $branch->branch_id }}" {{ old('branch_id', $employee->branch_id) == $branch->branch_id ? 'selected' : '' }}>
                                         {{ $branch->branch_name }}
+                                        {{ !$branch->is_active ? ' — [INACTIVE]' : '' }}
                                     </option>
                                 @endforeach
                             </select>
