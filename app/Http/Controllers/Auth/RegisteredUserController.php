@@ -50,26 +50,28 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // 2. Query for the Trainee record space
-        $traineePosition = Position::where('position_title', 'Trainee')->first();
+        // 2. Query for the Junior Employee record space
+        $juniorPosition = Position::where('position_title', 'Junior Employee')
+            ->orWhere('position_title', 'like', '%Junior%')
+            ->first();
 
-        // 3. DEFENSIVE GENERATION: Build the Trainee row with all required columns if missing
-        if (!$traineePosition) {
-            $traineePosition = Position::create([
-                'position_title' => 'Trainee',
+        // 3. DEFENSIVE GENERATION: Build the Junior Employee row if missing from table
+        if (!$juniorPosition) {
+            $juniorPosition = Position::create([
+                'position_title' => 'Junior Employee',
                 'job_level'      => 'Entry Level',
-                'hourly_rate'    => 0.00,
+                'hourly_rate'    => 50.00, // Mapped close to your Junior Agent baseline architecture
                 'is_active'      => 1,
-                'role_id'        => 2, // Assigns default employee structural role context
+                'role_id'        => 2, 
             ]);
         }
 
-        // 4. Attach the Employee Profile row safely
+        // 4. Attach the Employee Profile row assigning branch_id to 1 (Main Office)
         Employee::create([
             'user_id'     => $user->user_id, 
             'full_name'   => $user->name,
-            'position_id' => $traineePosition->position_id, 
-            'branch_id'   => null, 
+            'position_id' => $juniorPosition->position_id, 
+            'branch_id'   => 1, // FIXED: Explicitly assigns to Main Office to pass NOT NULL validation
         ]);
 
         // 5. System Footprint Logging
@@ -77,7 +79,7 @@ class RegisteredUserController extends Controller
             'user_id'     => $user->user_id,
             'action'      => 'USER_SELF_REGISTER',
             'module'      => 'Authentication Module',
-            'description' => "Account initialized for: {$user->email}. Automatically mapped to structural Trainee position profile.",
+            'description' => "Account initialized for: {$user->email}. Automatically mapped to Junior Employee position under Main Office (Branch 1).",
             'ip_address'  => $request->ip(),
         ]);
 
